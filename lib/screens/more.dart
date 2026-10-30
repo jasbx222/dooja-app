@@ -161,7 +161,7 @@ class Reels extends Scr {
     Widget page(Reel r) {
       final side = F([
         for (final (i, n, f, tp) in [
-          ('heart', kfmt(r.likes + (r.liked ? 1 : 0)), r.liked ? '#E5484D' : null, () { r.liked = !r.liked; repo.touch(); }),
+          ('heart', kfmt(r.likes), r.liked ? '#E5484D' : null, () { r.liked = !r.liked; repo.touch(); }),
           ('message-circle', '${r.comments.length + (r.place == 'ملعب بادل لاونج' && r.img == 'reel' ? 83 : 0)}', null, () => commentsSheet(c, r)),
           ('bookmark', 'حفظ', r.saved ? WH : null, () { r.saved = !r.saved; repo.touch(); toast(c, r.saved ? 'انحفظ بالمفضلة' : 'انشال من المحفوظات'); }),
           ('share-2', 'مشاركة', null, () => toast(c, 'نسخنا رابط الريل')),
@@ -208,7 +208,7 @@ Future<void> commentsSheet(BuildContext c, Reel r) {
       ], g: 10, al: 's', w: 'fill', jc: 'sb');
   final extra = r.img == 'reel' ? 83 : 0;
   return openSheet(c, title: 'التعليقات (${r.comments.length + extra})', top: 380, body: (sc, set) => [
-        Expanded(child: SingleChildScrollView(child: F([for (final x in r.comments) cm(x)], g: 16, w: 'fill'))),
+        Flexible(child: SingleChildScrollView(child: F([for (final x in r.comments) cm(x)], g: 16, w: 'fill'))),
         R([
           R([N(field(ctl, 'اكتب تعليق...', 14), fillW: true)], g: 8, bg: G, r: 22, h: 46, w: 'fill', p: [0, 16]),
           F([I('send', 20, WH)], al: 'c', jc: 'c', w: 46, h: 46, r: 23, bg: P, tap: () {
@@ -222,11 +222,12 @@ Future<void> commentsSheet(BuildContext c, Reel r) {
 }
 
 class Favs extends Scr {
-  const Favs({super.key});
+  final bool empty;
+  const Favs({super.key, this.empty = false});
   @override
   Widget view(c, s) {
     final t = s.get('t', 0);
-    final places = repo.places.where((p) => repo.favs.contains(p.id)).toList();
+    final places = this.empty ? <Place>[] : repo.places.where((p) => repo.favs.contains(p.id)).toList();
     final follows = repo.places.where((p) => repo.follows.contains(p.id)).toList();
     final saved = repo.reels.where((r) => r.saved).toList();
     Widget follow(Place p, String? nw) => R([R([img(p.img, 52, 52, 26), F([T(p.name, 14, 800), T('${p.type} · ${p.area}', 12, 400, MU)], g: 2)], g: 10, al: 'c', tap: () => push(c, Details(p.id))), nw != null ? tag(nw, icon: 'bell') : F([T('متابَع', 12, 700, MU)], tap: () => repo.toggleFollow(p.id))], jc: 'sb', w: 'fill', al: 'c');
@@ -246,7 +247,7 @@ class Favs extends Scr {
       if (t == 0)
         places.isEmpty
             ? empty('heart', 'بعدك ما حفظت أي مكان', 'اضغط على القلب بأي مكان يعجبك حتى تلگاه هنا بسرعة')
-            : F([for (final p in places) rowcard(c, p), if (follows.isNotEmpty) ...followsW], g: 12, w: 'fill', p: [8, 20]),
+            : F([for (final p in places) rowcard(c, p), if (follows.isNotEmpty && !this.empty) ...followsW], g: 12, w: 'fill', p: [8, 20]),
       if (t == 1) follows.isEmpty ? empty('store', 'ما تتابع أي مشروع', 'تابع الأماكن حتى توصلك عروضهم وريلزهم') : F(followsW, g: 12, w: 'fill', p: [8, 20]),
       if (t == 2)
         saved.isEmpty

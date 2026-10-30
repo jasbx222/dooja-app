@@ -15,7 +15,7 @@ String markSvg([String c = P, String? starc, double sw = 11]) {
 
 N MARK([double w = 60, String c = P, String? starc]) => N(SvgPicture.asset(c == WH ? 'assets/logo/mark_white.svg' : 'assets/logo/mark_purple.svg', width: w, height: (w * 281.75 / 562.25).roundToDouble()));
 N WORD([double h = 26, String c = INK, String acc = P, bool sub = true]) {
-  final hh = (h * 2).roundToDouble();
+  final hh = (h * 4.2).roundToDouble();
   return N(SvgPicture.asset(c == WH ? 'assets/logo/lockup_white.svg' : 'assets/logo/lockup_color.svg', height: hh, width: (hh * 562.25 / 534.25).roundToDouble()));
 }
 
@@ -85,7 +85,7 @@ N price(String v, [String? old, double s = 15]) => R([T('$v د.ع', s, 800, P), 
 N rating(String v, [String? n, String c = INK]) => R([I('star', 14, STAR, STAR), T(v, 13, 700, c), if (n != null) T('($n)', 12, 400, MU)], g: 4);
 N meta(String icon, String txt, [String c = MU, double s = 12]) => R([I(icon, 14, c), T(txt, s, 400, c)], g: 4);
 
-const BARSVG = '<svg xmlns="http://www.w3.org/2000/svg" width="390" height="92" viewBox="0 0 390 92"><path d="M0 24 Q0 0 24 0 H140 C152 0 156 4 160 14 C168 38 182 46 195 46 C208 46 222 38 230 14 C234 4 238 0 250 0 H366 Q390 0 390 24 V92 H0 Z" fill="#FFFFFF" stroke="#ECE9F5" stroke-width="1"/></svg>';
+const BARSVG = '<svg xmlns="http://www.w3.org/2000/svg" width="390" height="95" viewBox="0 0 390 95"><path d="M0 40 Q0 16 24 16 H156 C166 16 170 0 191.5 0 C213 0 218 16 228 16 H366 Q390 16 390 40 V95 H0 Z" fill="#FFFFFF" stroke="#ECE9F5" stroke-width="1"/></svg>';
 
 typedef TabItem = (String?, String);
 const NAV = <TabItem>[('house', 'الرئيسية'), ('calendar-check', 'حجوزاتي'), (null, 'اختارلي'), ('heart', 'المفضلة'), ('user', 'حسابي')];
@@ -95,20 +95,21 @@ Widget tabbar(List<TabItem> items, String? active, Widget center, void Function(
   final kids = <Widget>[];
   for (final (ic, l) in items) {
     if (ic == null) {
-      kids.add(BOX(w: 72, h: 10));
+      kids.add(BOX(w: 64, h: 10));
     } else {
       final on = l == active;
-      kids.add(F([I(ic, 24, on ? P : INK, on && ['house', 'heart', 'user'].contains(ic) ? P : null), Tn(l, s: 12, w: on ? 700 : 500, c: on ? P : INK, al: 'CENTER')], g: 5, al: 'c', w: 64, tap: () => onTab(l)));
+      kids.add(F([I(ic, 20, on ? P : INK, ic == 'house' ? (on ? P : INK) : null), Tn(l, s: 10, w: 700, c: on ? P : INK, al: 'CENTER')], g: 4, al: 'c', w: 64, tap: () => onTab(l)));
     }
   }
   final centerLabel = items[2].$2;
   return SizedBox(
       width: 390,
-      height: 120,
+      height: 95,
       child: Stack(clipBehavior: Clip.none, children: [
-        Positioned(left: 0, top: 28, child: S(BARSVG, 390, 92)),
-        Positioned(left: 0, top: 40, child: R(kids, jc: 'sb', al: 'c', w: 390, h: 72, p: [0, 16])),
-        Positioned(left: 170, top: 22, child: F([SvgPicture.asset('assets/logo/tab_center_infinity_white.svg', width: 30, height: 30)], al: 'c', jc: 'c', w: 50, h: 50, r: 25, bg: P, tap: () => onTab(centerLabel))),
+        Positioned(left: 0, top: 0, child: S(BARSVG, 390, 95)),
+        Positioned(left: 0, top: 24, child: R(kids, jc: 'sb', al: 's', w: 390, p: [0, 20])),
+        Positioned(left: 166.5, top: 15, child: F([center], al: 'c', jc: 'c', w: 50, h: 50, r: 25, bg: P, tap: () => onTab(centerLabel))),
+        Positioned(left: 128, top: 83, child: BOX(w: 134, h: 5, r: 3, bg: INK)),
       ]));
 }
 

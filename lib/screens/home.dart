@@ -140,18 +140,19 @@ Widget searchbar(BuildContext c, {TextEditingController? ctl, String txt = 'مل
 
 class Filt {
   String type = 'الكل';
-  int maxBudget = 40000;
+  int maxBudget = 40000, minBudget = 5000;
   String dist = 'كل بغداد';
   String avail = '';
   double minRate = 0;
-  Filt copy() => Filt()..type = type..maxBudget = maxBudget..dist = dist..avail = avail..minRate = minRate;
+  Filt copy() => Filt()..type = type..maxBudget = maxBudget..minBudget = minBudget..dist = dist..avail = avail..minRate = minRate;
 }
 
 double km(Place p) => double.parse(p.dist.split(' ').first);
 List<Place> applyF(Filt f, String q, String chip) => repo.places.where((p) {
-      if (q.isNotEmpty && !(p.name.contains(q) || p.type.contains(q) || p.area.contains(q) || p.cat.contains(q))) return false;
+      if (q.isNotEmpty && !q.split(' ').where((w) => w.isNotEmpty).any((q) => p.name.contains(q) || p.type.contains(q) || p.area.contains(q) || p.cat.contains(q))) return false;
       if (f.type != 'الكل' && !(p.type.contains(f.type) || p.cat.contains(f.type))) return false;
-      if (p.price > f.maxBudget) return false;
+      if (p.price > f.maxBudget && f.maxBudget < 40000) return false;
+      if (p.price < f.minBudget && f.minBudget > 5000) return false;
       final d = {'أقل من 2 كم': 2.0, '5 كم': 5.0, '10 كم': 10.0}[f.dist];
       if (d != null && km(p) > d) return false;
       if (f.avail == 'مفتوح الآن' && p.kind == 'full') return false;
@@ -170,26 +171,25 @@ Future<void> filtersSheet(BuildContext c, Filt f, VoidCallback onApply) {
     final n = applyF(t, '', '').length;
     Widget ch(String l, bool on, VoidCallback tp, [String? icon]) => chip(l, on, icon, 13, () => set(tp));
     final lo = 5000, hi = 40000;
-    final frac = (t.maxBudget - lo) / (hi - lo);
     return [
       Expanded(
           child: SingleChildScrollView(
               child: F([
-        sect('النوع', [R([for (final l in ['الكل', 'بادل', 'ملاعب', 'بليارد', 'كافيه', 'ألعاب']) ch(l, t.type == l, () => t.type = l)], g: 8, wrap: true, w: 'fill')]),
+        sect('النوع', [R([for (final l in ['بادل', 'ملاعب', 'بليارد', 'كافيهات', 'ألعاب']) ch(l, t.type == l, () => t.type = t.type == l ? 'الكل' : l)], g: 8, wrap: true, w: 'fill')]),
         sect('الميزانية للشخص', [
-          R([T('5,000 د.ع', 13, 700), T('${fmt(t.maxBudget)} د.ع', 13, 700)], jc: 'sb', w: 'fill'),
+          R([T('5,000 د.ع', 13, 700), T('40,000 د.ع', 13, 700)], jc: 'sb', w: 'fill'),
           SliderTheme(
-              data: SliderThemeData(trackHeight: 6, activeTrackColor: col(P), inactiveTrackColor: col(G), thumbColor: col(WH), overlayShape: SliderComponentShape.noOverlay, thumbShape: const _Thumb()),
-              child: Slider(value: frac, onChanged: (v) => set(() => t.maxBudget = ((lo + v * (hi - lo)) / 1000).round() * 1000))),
+              data: SliderThemeData(trackHeight: 6, activeTrackColor: col(P), inactiveTrackColor: col(G), thumbColor: col(WH), overlayShape: SliderComponentShape.noOverlay, rangeThumbShape: const _RThumb()),
+              child: RangeSlider(values: RangeValues((t.minBudget - lo) / (hi - lo), (t.maxBudget - lo) / (hi - lo)), onChanged: (v) => set(() { t.minBudget = ((lo + v.start * (hi - lo)) / 250).round() * 250; t.maxBudget = ((lo + v.end * (hi - lo)) / 250).round() * 250; }))),
         ]),
         sect('المسافة', [R([for (final l in ['أقل من 2 كم', '5 كم', '10 كم', 'كل بغداد']) ch(l, t.dist == l, () => t.dist = l)], g: 8, wrap: true, w: 'fill')]),
         sect('التوفر', [R([for (final l in ['مفتوح الآن', 'تتوفر مواعيد الآن']) ch(l, t.avail == l, () => t.avail = t.avail == l ? '' : l)], g: 8)]),
         sect('التقييم', [R([ch('4.5 وأكثر', t.minRate == 4.5, () => t.minRate = t.minRate == 4.5 ? 0 : 4.5, 'star'), ch('4 وأكثر', t.minRate == 4, () => t.minRate = t.minRate == 4 ? 0 : 4)], g: 8)]),
       ], g: 16, w: 'fill'))),
       R([
-        btn('مسح', kind: 'g', w: 110, tap: () => set(() { final z = Filt(); t..type = z.type..maxBudget = z.maxBudget..dist = z.dist..avail = z.avail..minRate = z.minRate; })),
+        btn('مسح', kind: 'g', w: 110, tap: () => set(() { final z = Filt(); t..type = z.type..maxBudget = z.maxBudget..minBudget = z.minBudget..dist = z.dist..avail = z.avail..minRate = z.minRate; })),
         btn('اعرض $n نتيجة', tap: () {
-          f..type = t.type..maxBudget = t.maxBudget..dist = t.dist..avail = t.avail..minRate = t.minRate;
+          f..type = t.type..maxBudget = t.maxBudget..minBudget = t.minBudget..dist = t.dist..avail = t.avail..minRate = t.minRate;
           onApply();
           Navigator.pop(sc);
         }),
@@ -198,16 +198,6 @@ Future<void> filtersSheet(BuildContext c, Filt f, VoidCallback onApply) {
   });
 }
 
-class _Thumb extends SliderComponentShape {
-  const _Thumb();
-  @override
-  Size getPreferredSize(bool e, bool d) => const Size(22, 22);
-  @override
-  void paint(PaintingContext ctx, Offset o, {required Animation<double> activationAnimation, required Animation<double> enableAnimation, required bool isDiscrete, required TextPainter labelPainter, required RenderBox parentBox, required SliderThemeData sliderTheme, required TextDirection textDirection, required double value, required double textScaleFactor, required Size sizeWithOverflow}) {
-    ctx.canvas.drawCircle(o, 11, Paint()..color = col(WH));
-    ctx.canvas.drawCircle(o, 9.5, Paint()..color = col(P)..style = PaintingStyle.stroke..strokeWidth = 3);
-  }
-}
 
 class Search extends Scr {
   final bool avail;
@@ -313,5 +303,16 @@ class Category extends Scr {
       if (list.length > 1) F([for (final p in list.skip(1)) rowcard(c, p)], g: 10, w: 'fill', p: [0, 20]),
       if (list.isEmpty) F([BOX(h: 60, w: 1), F([I('search-x', 44, P)], al: 'c', jc: 'c', w: 110, h: 110, r: 32, bg: PL), Tn('قريباً بهالقسم', s: 19, w: 800, al: 'CENTER'), Tn('دا نضيف أماكن جديدة كل أسبوع', s: 14, c: MU, al: 'CENTER')], g: 14, al: 'c', w: 'fill'),
     ], nav: 'الرئيسية');
+  }
+}
+
+class _RThumb extends RangeSliderThumbShape {
+  const _RThumb();
+  @override
+  Size getPreferredSize(bool e, bool d) => const Size(22, 22);
+  @override
+  void paint(PaintingContext ctx, Offset o, {required Animation<double> activationAnimation, required Animation<double> enableAnimation, bool isDiscrete = false, bool isEnabled = false, bool? isOnTop, TextDirection? textDirection, required SliderThemeData sliderTheme, Thumb? thumb, bool? isPressed}) {
+    ctx.canvas.drawCircle(o, 11, Paint()..color = col(WH));
+    ctx.canvas.drawCircle(o, 9.5, Paint()..color = col(P)..style = PaintingStyle.stroke..strokeWidth = 3);
   }
 }

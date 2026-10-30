@@ -35,7 +35,6 @@ class Details extends Scr {
   @override
   Widget view(c, s) {
     final p = repo.place(id);
-    final fav = repo.favs.contains(id);
     final follow = repo.follows.contains(id);
     final pk = s.get('pk', 1);
     final pks = packagesOf(p);
@@ -49,7 +48,7 @@ class Details extends Scr {
     const am = [('car', 'موقف سيارات'), ('snowflake', 'تكييف'), ('wifi', 'واي فاي'), ('coffee', 'كافتيريا'), ('armchair', 'استراحة'), ('lock', 'خزائن')];
     final hero = img(p.img, 390, 300, 0, [
       status(true),
-      F([R([iconbtn('arrow-right', tap: () => Navigator.pop(c)), R([iconbtn('share-2', tap: () => toast(c, 'نسخنا الرابط: dooja.app/p/${p.id}')), iconbtn('heart', c: P, f: fav ? P : null, tap: () => repo.toggleFav(id))], g: 8)], jc: 'sb', w: 'fill')], w: 'fill', p: [4, 20]),
+      F([R([iconbtn('arrow-right', tap: () => Navigator.pop(c)), R([iconbtn('share-2', tap: () => toast(c, 'نسخنا الرابط: dooja.app/p/${p.id}')), iconbtn('heart', c: INK, f: null, tap: () => repo.toggleFav(id))], g: 8)], jc: 'sb', w: 'fill')], w: 'fill', p: [4, 20]),
       R([T('1 / 12', 12, 700, WH), I('image', 14, WH)], g: 4, bg: '#11111199', r: 10, p: [4, 8], ab: [20, 250]),
     ]);
     final r = revs.first;
@@ -57,7 +56,7 @@ class Details extends Scr {
       hero,
       SingleChildScrollView(scrollDirection: Axis.horizontal, child: R([
         img(p.img, 72, 56, 12),
-        img('reel', 72, 56, 12, [F([I('play', 16, WH, WH)], al: 'c', jc: 'c', w: 72, h: 56, bg: '#11111155')]),
+        img('reel', 72, 56, 12, [F([I('play', 16, WH, WH)], al: 'c', jc: 'c', w: 72, h: 56)]),
         img('football', 72, 56, 12),
         img('gaming', 72, 56, 12),
         F([T('+8', 14, 800, P)], al: 'c', jc: 'c', w: 72, h: 56, r: 12, bg: PL),

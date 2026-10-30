@@ -1,3 +1,4 @@
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter/material.dart';
 import 'dsl.dart';
 import 'common.dart';
@@ -43,15 +44,15 @@ void resetTo(BuildContext c, Widget w, {bool anim = false}) => Navigator.of(c).p
 late void Function(BuildContext, String) onCustomerTab;
 late void Function(BuildContext, String) onOwnerTab;
 
-Widget navbar(BuildContext c, String active) => tabbar(NAV, active, MARK(46, WH, WH), (l) => onCustomerTab(c, l));
-Widget onav(BuildContext c, String? active) => tabbar(ONAV, active, I('plus', 32, WH), (l) => onOwnerTab(c, l));
+Widget navbar(BuildContext c, String active) => tabbar(NAV, active, N(SvgPicture.asset('assets/logo/tab_center_infinity_white.svg', width: 50, height: 50)), (l) => onCustomerTab(c, l));
+Widget onav(BuildContext c, String? active) => tabbar(ONAV, active, I('plus', 26, WH), (l) => onOwnerTab(c, l));
 
 void toast(BuildContext c, String m) => ScaffoldMessenger.of(c).showSnackBar(SnackBar(
     content: Text(m, textAlign: TextAlign.center, style: ts(14, 700, WH)), backgroundColor: col(INK), behavior: SnackBarBehavior.floating, duration: const Duration(seconds: 2), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))));
 
 /// Standard 390-wide screen: status bar, scrollable content, optional tab bar / bottom bar.
 Widget screen(BuildContext c, List<Widget?> k, {String bg = WH, String? nav, String? onavTab, bool dark = false, double g = 0, Widget? bottomBar, double bottomH = 100, List<Widget> extra = const [], Widget? background, bool scroll = true}) {
-  final pb = nav != null || onavTab != null ? 120.0 : (bottomBar != null ? bottomH + 20 : 24.0);
+  final pb = nav != null || onavTab != null ? 105.0 : (bottomBar != null ? bottomH + 20 : 24.0);
   final content = F(k, g: g, w: 'fill', p: [0, 0, pb, 0]);
   return Scaffold(
     backgroundColor: col(bg),

@@ -82,7 +82,7 @@ N F(List<Widget?> kids, {String? d = 'v', double g = 0, dynamic p = 0, String? b
   Widget? inner;
   if (d != null && flow.isNotEmpty) {
     if (wrap) {
-      inner = Wrap(spacing: g, runSpacing: g, textDirection: ltr ? TextDirection.ltr : null, alignment: jc == 'c' ? WrapAlignment.center : WrapAlignment.start, crossAxisAlignment: WrapCrossAlignment.center, children: flow);
+      inner = Wrap(spacing: g, runSpacing: g, textDirection: ltr ? TextDirection.ltr : null, alignment: jc == 'c' ? WrapAlignment.center : WrapAlignment.start, crossAxisAlignment: WrapCrossAlignment.center, verticalDirection: VerticalDirection.up, children: flow);
     } else if (d == 'h') {
       final ch = <Widget>[];
       for (var i = 0; i < flow.length; i++) {
@@ -103,7 +103,7 @@ N F(List<Widget?> kids, {String? d = 'v', double g = 0, dynamic p = 0, String? b
       for (var i = 0; i < flow.length; i++) {
         if (i > 0 && g > 0) ch.add(SizedBox(height: g));
         var k = flow[i];
-        if (anyFill && !isFillW(k)) k = Align(alignment: a == 'c' ? Alignment.center : a == 'e' ? AlignmentDirectional.centerEnd : AlignmentDirectional.centerStart, child: k);
+        if (anyFill && !isFillW(k) && k is! Flexible) k = Align(alignment: a == 'c' ? Alignment.center : a == 'e' ? AlignmentDirectional.centerEnd : AlignmentDirectional.centerStart, child: k);
         ch.add(isFillH(k) ? Expanded(child: k) : k);
       }
       inner = Column(

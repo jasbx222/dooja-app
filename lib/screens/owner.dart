@@ -167,8 +167,6 @@ class OServices extends Scr {
 class OPending extends Scr {
   const OPending({super.key});
   @override
-  void init(ScrSt s) => Future.delayed(const Duration(seconds: 6), () => s.set('stage', 2));
-  @override
   Widget view(c, s) {
     final stage = s.get('stage', 1);
     Widget st(String t, String sub, bool done, [bool cur = false]) => R([
@@ -179,7 +177,7 @@ class OPending extends Scr {
       topbar('حالة الطلب', back: false),
       BOX(w: 10, h: 30),
       body([
-        F([ibox(stage == 2 ? 'circle-check' : 'hourglass', c: stage == 2 ? OK : P, bg: stage == 2 ? OKB : PL, s: 96), Tn(stage == 2 ? 'تفعّل مشروعك!' : 'مشروعك قيد المراجعة', s: 22, w: 800, al: 'CENTER'), Tn(stage == 2 ? '${reg['name']} صار يظهر للناس بالتطبيق.' : 'فريق ضوجة يراجع المعلومات خلال 24 ساعة. راح نبلغك بإشعار أول ما يتفعل.', s: 14, c: MU, al: 'CENTER', w2: 310, lh: 22)], g: 14, al: 'c', w: 'fill'),
+        F([F([ibox(stage == 2 ? 'circle-check' : 'hourglass', c: stage == 2 ? OK : P, bg: stage == 2 ? OKB : PL, s: 96)], tap: () => s.set('stage', 2)), Tn(stage == 2 ? 'تفعّل مشروعك!' : 'مشروعك قيد المراجعة', s: 22, w: 800, al: 'CENTER'), Tn(stage == 2 ? '${reg['name']} صار يظهر للناس بالتطبيق.' : 'فريق ضوجة يراجع المعلومات خلال 24 ساعة. راح نبلغك بإشعار أول ما يتفعل.', s: 14, c: MU, al: 'CENTER', w2: 310, lh: 22)], g: 14, al: 'c', w: 'fill'),
         card([st('استلمنا الطلب', 'اليوم 6:40 م', true), st('مراجعة المعلومات والصور', stage == 2 ? 'تمت' : 'جاري الآن', stage == 2, stage == 1), st('تفعيل المشروع', 'يظهر للناس بالتطبيق', stage == 2)], g: 16),
       ], g: 24),
     ], bottomBar: bottom([stage == 2 ? btn('افتح لوحة المشروع', tap: () { repo.role = Role.owner; resetTo(c, const OwnerHome(), anim: true); }) : btn('عدّل الطلب', kind: 's', tap: () => push(c, const OInfo()))]));
@@ -206,7 +204,7 @@ class OwnerHome extends Scr {
         iconbtn('bell', dot: repo.ownerNotifs.any((n) => n.fresh), tap: () => push(c, const Notifs(owner: true))),
       ], jc: 'sb', al: 'c', w: 'fill', p: [8, 20]),
       body([
-        R([T('هلا ${repo.userName}', 22, 800), T('السبت 30 تشرين الأول', 12, 500, MU)], jc: 'sb', al: 'e', w: 'fill'),
+        R([T('هلا أبو علي', 22, 800), T('السبت 30 تشرين الأول', 12, 500, MU)], jc: 'sb', al: 'e', w: 'fill'),
         R([stat('حجوزات اليوم', '${repo.todayBookings}', '+${repo.todayBookings - 7} عن أمس', true, () => onOwnerTab(c, 'الحجوزات')), stat('دخل اليوم', '${fmt(repo.todayIncome)} د.ع')], g: 10, w: 'fill'),
         R([stat('مشاهدات الأسبوع', '4,320', '+18%', true, () => onOwnerTab(c, 'الإحصائيات')), stat('التقييم', '4.8', '312 تقييم', true, () => push(c, const OReviews()))], g: 10, w: 'fill'),
         R([T('طلبات بانتظارك', 17, 800), T('${reqs.length}', 13, 800, P)], jc: 'sb', w: 'fill', tap: () => onOwnerTab(c, 'الحجوزات')),
@@ -239,7 +237,6 @@ class OInsights extends Scr {
         R([stat('مشاهدات', sc(4320), '+18%'), stat('ضغطات', sc(1140), '+9%'), stat('حجوزات', sc(86), '-4%', false)], g: 8, w: 'fill'),
         card([R([T('الحجوزات حسب اليوم', 15, 800), T('الخميس الأعلى', 12, 700, P)], jc: 'sb', w: 'fill'), barChart(vals, ['سبت', 'أحد', 'اثنين', 'ثلاثاء', 'خميس', 'جمعة', 'أربعاء'], 4)], g: 14),
         card([T('منين يجون الناس؟', 15, 800), row('اختارلي', '38%', 118), row('البحث', '27%', 84), row('الريلز', '21%', 65), row('العروض', '14%', 43)], g: 12),
-        R([T('أداء العروض', 15, 800, P), I('chevron-left', 18, P)], g: 6, jc: 'c', w: 'fill', p: 12, r: 16, bg: PL, tap: () => push(c, const OOffPerf())),
       ], g: 14),
     ], onavTab: 'الإحصائيات');
   }
@@ -250,7 +247,7 @@ class OOffPerf extends Scr {
   @override
   Widget view(c, s) {
     final t = s.get('t', 0);
-    final list = repo.ownerOffers.where((o) => t == 0 ? o.active : t == 2 ? !o.active : false).toList();
+    final list = repo.ownerOffers.where((o) => t == 0 ? true : t == 2 ? !o.active : false).toList();
     return screen(c, [
       topbar('أداء العروض'),
       F([tabs(['فعّالة', 'مجدولة', 'منتهية'], t, (i) => s.set('t', i))], w: 'fill', p: [4, 20]),
@@ -303,7 +300,6 @@ class OBookings extends Scr {
       body([
         if (list.isEmpty) F([BOX(h: 60, w: 1), Tn('ماكو حجوزات هنا', s: 16, w: 700, c: MU, al: 'CENTER')], al: 'c', w: 'fill'),
         for (final r in list) b(r),
-        if (t == 0) for (final r in repo.ownerReqs.where((r) => r.status == 'ok').take(1)) b(r),
       ], g: 12),
     ], onavTab: 'الحجوزات');
   }
@@ -312,7 +308,6 @@ class OBookings extends Scr {
 class OScan extends Scr {
   const OScan({super.key});
   @override
-  void init(ScrSt s) => Future.delayed(const Duration(milliseconds: 1500), () => s.set('found', true));
   @override
   Widget view(c, s) {
     final found = s.get('found', false);
@@ -324,7 +319,7 @@ class OScan extends Scr {
           Positioned.fill(child: Image.asset('assets/img/padel.jpg', fit: BoxFit.cover)),
           Positioned.fill(child: ColoredBox(color: col('#111111B3'))),
           Positioned(left: 0, top: 0, child: F([status(true), R([iconbtn('x', bg: '#FFFFFF26', c: WH, sk: null, tap: () => Navigator.pop(c)), T('تسجيل وصول الزبون', 17, 800, WH), BOX(w: 40, h: 40)], jc: 'sb', al: 'c', w: 'fill', p: [8, 20])], w: 390)),
-          Positioned(left: 75, top: 230 * h / 844, child: BOX(w: 240, h: 240, r: 28, sk: found ? '#22C55E' : WH, skw: 3)),
+          Positioned(left: 75, top: 230 * h / 844, child: GestureDetector(onTap: () => s.set('found', true), child: BOX(w: 240, h: 240, r: 28, sk: found ? '#22C55E' : WH, skw: 3))),
           Positioned(left: 45, top: 490 * h / 844, child: Tn(found ? 'لگينا الحجز ✓' : 'وجّه الكاميرا على رمز QR بحجز الزبون', s: 14, w: 500, c: WH, al: 'CENTER', w2: 300)),
           if (found)
             Positioned(left: 20, bottom: 30, child: F([
@@ -513,7 +508,7 @@ class OReviews extends Scr {
   Widget view(c, s) {
     final ch = s.get('ch', 0);
     final all = repo.ownerReviews;
-    final list = switch (ch) { 0 => all.where((r) => r.reply == null).toList(), 2 => all.where((r) => r.stars == 5).toList(), 3 => all.where((r) => r.stars < 3).toList(), _ => all };
+    final list = switch (ch) { 0 => all, 2 => all.where((r) => r.stars == 5).toList(), 3 => all.where((r) => r.stars < 3).toList(), _ => all };
     Widget rv(Review r) {
       final ctl = s.ctl('r${all.indexOf(r)}', r.stars < 4 ? 'شكراً على ملاحظتك، صلّحنا الإضاءة' : 'تسلم، ننتظرك مرة ثانية');
       return card([
@@ -525,7 +520,7 @@ class OReviews extends Scr {
       ], p: 14, g: 10);
     }
 
-    final nNo = all.where((r) => r.reply == null).length;
+    final nNo = all.length;
     return screen(c, [
       topbar('التقييمات'),
       SingleChildScrollView(scrollDirection: Axis.horizontal, child: R([for (var i = 0; i < 4; i++) chip(['بدون رد ($nNo)', 'الكل', '5 نجوم', 'أقل من 3'][i], ch == i, null, 13, () => s.set('ch', i))], g: 8, p: [4, 20])),

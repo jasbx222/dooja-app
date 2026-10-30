@@ -52,7 +52,7 @@ class Reel {
   int likes;
   bool liked = false, saved = false;
   final List<(String, String, String, int)> comments;
-  Reel(this.img, this.placeId, this.place, this.caption, this.offer, this.likes, this.comments);
+  Reel(this.img, this.placeId, this.place, this.caption, this.offer, this.likes, this.comments) { liked = placeId == 'p1' && img == 'reel'; }
 }
 
 class OwnerReq {
@@ -115,7 +115,6 @@ class Repo extends ChangeNotifier {
     'p1': [
       Review('علي حسين', 'قبل يومين', 5, 'الأرضية ممتازة والإضاءة قوية، الحجز من التطبيق كان سهل جداً.', photos: true, reply: 'تسلم علي، ننتظرك مرة لخ!'),
       Review('زينب كريم', 'قبل أسبوع', 4, 'مكان مرتب، بس الموقف يزدحم بالليل. الأسعار مناسبة.'),
-      Review('مصطفى عادل', 'قبل أسبوعين', 5, 'أحلى سهرة بادل ويا الشباب، الكافتيريا ممتازة.'),
     ],
   };
   List<Review> reviewsOf(String id) => reviews.putIfAbsent(id, () => [
@@ -132,7 +131,6 @@ class Repo extends ChangeNotifier {
   final ownerReviews = <Review>[
     Review('علي حسين', 'قبل يومين', 3, 'المكان حلو بس الإضاءة بالملعب الثاني ضعيفة شوية.'),
     Review('سارة محمد', 'قبل يومين', 5, 'أفضل ملعب بادل ببغداد، الحجز كان سهل جداً', reply: 'تسلمين سارة، ننتظرك مرة ثانية'),
-    Review('أحمد ستار', 'قبل 4 أيام', 4, 'ملعب ممتاز، بس نتمنى تزيدون أوقات الصبح.'),
   ];
   void reply(Review r, String t) { r.reply = t; notifyListeners(); }
 
@@ -171,8 +169,8 @@ class Repo extends ChangeNotifier {
   int _code = 4821;
   final bookings = <Booking>[
     Booking('DJ-4821', 'p1', 'السبت 31 تشرين الأول', '8:00 م', 'ساعتين', 4, 31500, 'كاش بالمكان', 'مؤكد'),
-    Booking('DJ-4790', 'p3', 'الأحد 1 تشرين الثاني', '9:00 م', 'ساعتين', 4, 16000, 'كاش بالمكان', 'بالانتظار'),
-    Booking('DJ-4802', 'p5', 'الجمعة 6 تشرين الثاني', '10:00 ص', '3 ساعات', 4, 100000, 'زين كاش', 'بانتظار القبول'),
+    Booking('DJ-4790', 'p3', 'الأحد 1 تشرين الثاني', '9:00 م', 'ساعتين', 4, 31500, 'كاش بالمكان', 'بالانتظار'),
+    Booking('DJ-4802', 'p5', 'الجمعة 6 تشرين الثاني', '10:00 ص', '3 ساعات', 4, 31500, 'زين كاش', 'بانتظار القبول'),
     Booking('DJ-4610', 'p4', 'الخميس 22 تشرين الأول', '7:00 م', 'ساعة', 3, 15000, 'كاش بالمكان', 'مكتمل'),
     Booking('DJ-4555', 'p2', 'الجمعة 16 تشرين الأول', '6:00 م', 'ساعتين', 10, 60000, 'بطاقة', 'مكتمل', rated: true),
   ];
