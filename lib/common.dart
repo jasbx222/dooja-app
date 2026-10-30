@@ -15,11 +15,8 @@ String markSvg([String c = P, String? starc, double sw = 11]) {
 
 N MARK([double w = 60, String c = P, String? starc]) => N(SvgPicture.asset(c == WH ? 'assets/logo/mark_white.svg' : 'assets/logo/mark_purple.svg', width: w, height: (w * 281.75 / 562.25).roundToDouble()));
 N WORD([double h = 26, String c = INK, String acc = P, bool sub = true]) {
-  final s = h / 26;
-  return F([
-    R([T('D', (30 * s).roundToDouble(), 800, c), MARK((44 * s).roundToDouble(), acc), T('JA', (30 * s).roundToDouble(), 800, c)], g: (1 * s).roundToDouble(), ltr: true),
-    if (sub) Tn('ضوجة؟', s: (15 * s).roundToDouble(), w: 700, c: acc, al: 'CENTER'),
-  ], al: 'c');
+  final hh = (h * 2).roundToDouble();
+  return N(SvgPicture.asset(c == WH ? 'assets/logo/lockup_white.svg' : 'assets/logo/lockup_color.svg', height: hh, width: (hh * 562.25 / 534.25).roundToDouble()));
 }
 
 Widget status([bool dark = false]) => Builder(builder: (ctx) {
