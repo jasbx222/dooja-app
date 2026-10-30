@@ -60,10 +60,8 @@ class Login extends Scr {
     final busy = s.get('busy', false);
     final err = s.get<String?>('err', null);
     Future<void> send() async {
-      var d = ctl.text.replaceAll(RegExp(r'\D'), '');
-      if (d.startsWith('964')) d = d.substring(3);
-      if (!d.startsWith('0')) d = '0$d';
-      if (!RegExp(r'^07\d{9}$').hasMatch(d)) return s.set('err', 'دخّل رقم موبايل عراقي صحيح، مثل 0770 000 0001');
+      final d = normPhone(ctl.text);
+      if (d == null) return s.set('err', 'دخّل رقم موبايل عراقي صحيح، مثل 0770 000 0001');
       s.set('err', null);
       s.set('busy', true);
       await repo.lag(700);
@@ -94,8 +92,8 @@ class Login extends Scr {
       F([
         F([
           R([I('info', 14, P), T('حسابات تجريبية · الرمز 1234', 12, 700, P)], g: 6),
-          F([T('زبون: 07700000001', 12, 500, INK)], tap: () => ctl.text = '07700000001'),
-          F([T('صاحب مشروع: 07700000002', 12, 500, INK)], tap: () => ctl.text = '07700000002'),
+          F([T('زبون: 07700000001', 12, 500, INK)], tap: () { ctl.text = '07700000001'; s.set('err', null); }),
+          F([T('صاحب مشروع: 07700000002', 12, 500, INK)], tap: () { ctl.text = '07700000002'; s.set('err', null); }),
           F([T('كل الشاشات ←', 12, 700, P)], tap: () => push(c, const Gallery())),
         ], g: 4, al: 'c', p: [10, 14], r: 14, bg: BG),
         BOX(h: 10, w: 1),
@@ -206,4 +204,19 @@ class Interests extends Scr {
       ], g: 12, wrap: true, w: 'fill', p: [16, 24]),
     ], bottomBar: bottom([btn('خلصت', tap: done)]));
   }
+}
+
+/// Lenient Iraqi mobile normaliser: returns 07XXXXXXXXX or null.
+String? normPhone(String raw) {
+  var d = raw.replaceAll(RegExp(r'\D'), '');
+  if (d.startsWith('00964')) d = d.substring(5);
+  if (d.startsWith('964')) d = d.substring(3);
+  d = d.replaceFirst(RegExp(r'^0+'), '');
+  if (d.length == 11 && d.startsWith('7')) {
+    // one extra digit typed inside a run of zeros (e.g. 077000000001)
+    final m = RegExp(r'0{2,}').allMatches(d).toList();
+    if (m.isNotEmpty) { m.sort((x, y) => (y.end - y.start) - (x.end - x.start)); d = d.replaceRange(m.first.start, m.first.start + 1, ''); }
+  }
+  if (!RegExp(r'^7\d{9}$').hasMatch(d)) return null;
+  return '0$d';
 }
