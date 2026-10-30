@@ -1,0 +1,318 @@
+import 'package:flutter/material.dart';
+import '../dsl.dart';
+import '../common.dart';
+import '../app.dart';
+import '../repo.dart';
+import 'home.dart';
+import 'more.dart';
+import 'place.dart';
+
+String qrSvg(String seed) {
+  final h = seed.codeUnits.fold<int>(7, (a, b) => a * 31 + b);
+  final b = StringBuffer('<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 25 25" shape-rendering="crispEdges">');
+  for (var x = 0; x < 25; x++) {
+    for (var y = 0; y < 25; y++) {
+      bool on;
+      if (x < 7 && y < 7) {
+        on = x == 0 || x == 6 || y == 0 || y == 6 || (x >= 2 && x <= 4 && y >= 2 && y <= 4);
+      } else if (x > 17 && y < 7) {
+        on = x == 18 || x == 24 || y == 0 || y == 6 || (x >= 20 && x <= 22 && y >= 2 && y <= 4);
+      } else if (x < 7 && y > 17) {
+        on = x == 0 || x == 6 || y == 18 || y == 24 || (x >= 2 && x <= 4 && y >= 20 && y <= 22);
+      } else {
+        on = !((x < 8 && y < 8) || (x > 16 && y < 8) || (x < 8 && y > 16)) && (x * 7 + y * 13 + x * y + (seed == 'DJ-4821' ? 0 : h % 5)) % 5 < 2;
+      }
+      if (on) b.write('<rect x="$x" y="$y" width="1" height="1" fill="#111"/>');
+    }
+  }
+  b.write('</svg>');
+  return b.toString();
+}
+
+class PickPrefs {
+  String people = '4', budget = '10 - 25 ألف', mood = 'حماسي';
+}
+final pickPrefs = PickPrefs();
+
+List<(Place, List<(String, String)>)> pickResults(int shuffle) {
+  final pp = pickPrefs;
+  final n = int.tryParse(pp.people.replaceAll('+', '')) ?? 5;
+  final out = <(Place, List<(String, String)>)>[];
+  for (final p in repo.places) {
+    final per = p.unit == 'ساعة' ? (p.price * 1.75 / n).round() : p.price;
+    final okB = pp.budget == 'أقل من 10 آلاف' ? per < 10000 : pp.budget == '10 - 25 ألف' ? per <= 25000 : true;
+    final calm = ['كافيه', 'مطاعم', 'منتجعات', 'مسابح'].contains(p.type);
+    final okM = pp.mood == 'أي شي' || (pp.mood == 'حماسي' && !calm && p.type != 'أنشطة عائلية') || (pp.mood == 'هادئ' && calm && per < 10000 && pp.budget != 'أقل من 10 آلاف') || (pp.mood == 'عائلي' && (p.type == 'أنشطة عائلية' || p.type == 'منتجعات' || p.type == 'مطاعم'));
+    if (okB && okM && p.kind != 'full') {
+      out.add((p, [('wallet', 'ضمن ميزانيتك'), if (km(p) < 3) ('navigation', 'قريب منك ${p.dist}'), if (p.kind == 'slots') ('calendar-check', 'موعد 8:00 متوفر') else ('users', 'يناسب ${pp.people} أشخاص')]));
+    }
+  }
+  if (out.length > 2) {
+    final r = shuffle % out.length;
+    return [...out.skip(r), ...out.take(r)];
+  }
+  return out;
+}
+
+class PickQ extends Scr {
+  const PickQ({super.key});
+  @override
+  Widget view(c, s) {
+    final pp = pickPrefs;
+    final busy = s.get('busy', false);
+    Widget q(String icon, String lab, String val) => R([R([I(icon, 20, P), T(lab, 15, 700)], g: 10), R([T(val, 14, 500, MU), I('chevron-left', 18, MU)], g: 6)], jc: 'sb', w: 'fill', p: [16, 16], r: 16, bg: WH, sk: LN, tap: () => toast(c, 'تكدر تغيّر $lab من هنا'));
+    Widget grp(String t, List<Widget> k) => F([T(t, 14, 800), R(k, g: 8)], g: 10, w: 'fill');
+    return screen(c, [
+      topbar('اختارلي'),
+      F([R([F([Tn('خل ضوجة تختارلك الأفضل', s: 22, w: 800, w2: 230, lh: 30), T('جاوب على كم سؤال ونختارلك الأنسب', 14, 400, MU)], g: 6), F(const [], d: null, bg: 'img:dice:FIT', w: 84, h: 84)], jc: 'sb', al: 'c', w: 'fill')], w: 'fill', p: [4, 20]),
+      F([
+        grp('كم شخص؟', [for (final x in ['1', '2', '3', '4', '5+']) chip(x, x == pp.people, null, 13, () { pp.people = x; s.set('x', x); })]),
+        grp('الميزانية للشخص', [for (final x in ['أقل من 10 آلاف', '10 - 25 ألف', 'أكثر']) chip(x, x == pp.budget, null, 13, () { pp.budget = x; s.set('x', x); })]),
+        grp('نوع الجو', [for (final (x, i) in [('حماسي', 'flame'), ('هادئ', null), ('عائلي', null), ('أي شي', null)]) chip(x, x == pp.mood, x == pp.mood ? i : (x == 'حماسي' ? i : null), 13, () { pp.mood = x; s.set('x', x); })]),
+      ], g: 18, w: 'fill', p: [8, 20]),
+      F([q('map-pin', 'الموقع', '${repo.area} · لحد 5 كم'), q('clock', 'الوقت', 'اليوم · 8 بالليل'), q('hourglass', 'المدة', 'ساعتين'), q('layout-grid', 'النشاط', 'بادل، بليارد، ألعاب')], g: 10, w: 'fill', p: [8, 20]),
+    ], bottomBar: bottom([btn('اختارلي هسه', icon: 'sparkle', busy: busy, tap: () async {
+      s.set('busy', true);
+      await repo.lag(1000);
+      s.set('busy', false);
+      if (!c.mounted) return;
+      push(c, pickResults(0).isEmpty ? const PickEmpty() : const PickRes());
+    })]));
+  }
+}
+
+class PickRes extends Scr {
+  const PickRes({super.key});
+  @override
+  Widget view(c, s) {
+    final sh = s.get('sh', 0);
+    final res = pickResults(sh).take(3).toList();
+    final pp = pickPrefs;
+    Widget resw(Place p, List<(String, String)> rs, bool top) {
+      final n = int.tryParse(pp.people.replaceAll('+', '')) ?? 5;
+      final per = p.unit == 'ساعة' ? (p.price * 1.75 / n / 250).round() * 250 : p.price;
+      return card([
+        img(p.img, 318, 130, 16, [if (top) tag('الأنسب إلكم', bg: P, c: WH, icon: 'sparkle')], 'h', 10, 's'),
+        R([F([T(p.name, 16, 800), meta('map-pin', '${p.type} · ${p.area}')], g: 4), F([T('${fmt(per)} د.ع', 15, 800, P), T('للشخص', 11, 400, MU)], al: 'e', g: 2)], jc: 'sb', w: 'fill'),
+        R([for (final (i, r) in rs) tag(r, icon: i)], g: 6, wrap: true, w: 'fill'),
+        R([btn('احجز', icon: 'calendar-check', h: 40, tap: () => push(c, BookSlot(p.id))), btn('التفاصيل', kind: 'g', h: 40, w: 110, tap: () => push(c, Details(p.id)))], g: 8, w: 'fill'),
+      ], p: 12, g: 10);
+    }
+
+    return screen(c, [
+      topbar('اخترنالك', sub: '${pp.people} أشخاص · ${pp.budget} · ${pp.mood}'),
+      if (res.isEmpty) F([BOX(h: 60, w: 1), Tn('ماكو نتائج', s: 18, w: 800, al: 'CENTER')], al: 'c', w: 'fill'),
+      F([for (var i = 0; i < res.length; i++) resw(res[i].$1, res[i].$2, i == 0)], g: 12, w: 'fill', p: [4, 20]),
+    ], bottomBar: bottom([R([btn('اختارلي غيرهن', icon: 'shuffle', kind: 's', tap: () => s.set('sh', sh + 1)), btn('عدّل', icon: 'sliders-horizontal', kind: 'g', w: 110, tap: () => Navigator.pop(c))], g: 10, w: 'fill')]));
+  }
+}
+
+class PickEmpty extends Scr {
+  const PickEmpty({super.key});
+  @override
+  Widget view(c, s) => screen(c, [
+        topbar('اخترنالك'),
+        F([
+          BOX(w: 10, h: 80),
+          F([I('search-x', 44, P)], al: 'c', jc: 'c', w: 110, h: 110, r: 32, bg: PL),
+          Tn('ما لگينا مكان يطابق كل اختياراتك', s: 19, w: 800, al: 'CENTER'),
+          Tn('جرّب توسّع المسافة أو تغيّر الميزانية، أو خلّينا نقترح أقرب شي', s: 14, c: MU, al: 'CENTER', w2: 300, lh: 22),
+          F([
+            R([T('وسّع المسافة لـ 10 كم', 14, 700), I('navigation', 18, P)], g: 8, jc: 'sb', w: 'fill', tap: () { pickPrefs.mood = 'أي شي'; replace(c, const PickRes()); }),
+            R([T('ارفع الميزانية لـ 30 ألف', 14, 700), I('wallet', 18, P)], g: 8, jc: 'sb', w: 'fill', tap: () { pickPrefs.budget = 'أكثر'; replace(c, const PickRes()); }),
+          ], g: 14, w: 'fill', p: 16, r: 18, bg: G),
+        ], g: 16, al: 'c', w: 'fill', p: [0, 24]),
+      ], bottomBar: bottom([btn('عدّل الاختيارات', icon: 'sliders-horizontal', tap: () => Navigator.pop(c))]));
+}
+
+N slot(String t, {String st = 'free', bool on = false, VoidCallback? tap}) {
+  final bg = st == 'full' ? G : WH;
+  final c = st == 'full' ? MU : (on ? WH : INK);
+  return F([Tn(t, s: 14, w: 700, c: c, al: 'CENTER', st: st == 'full')], al: 'c', jc: 'c', w: 100, h: 46, r: 14, bg: on ? P : bg, sk: on || st == 'full' ? null : LN, tap: tap);
+}
+
+const DAYS = [('سبت', '31', 'السبت 31 تشرين الأول'), ('أحد', '1', 'الأحد 1 تشرين الثاني'), ('اثنين', '2', 'الاثنين 2 تشرين الثاني'), ('ثلاثاء', '3', 'الثلاثاء 3 تشرين الثاني'), ('أربعاء', '4', 'الأربعاء 4 تشرين الثاني')];
+const SLOTS = ['6:00 م', '7:00 م', '8:00 م', '9:00 م', '10:00 م', '11:00 م'];
+const DURS = ['ساعة', 'ساعتين', '3 ساعات'];
+
+class Draft {
+  final String placeId;
+  int day = 0, slot = 2, dur = 1, people = 4;
+  String pay = 'cash';
+  Offer? offer;
+  Draft(this.placeId);
+  Place get p => repo.place(placeId);
+  int get base => packagesOf(p)[dur].$3;
+  int get disc => offer != null ? (base * (1 - offer!.newP / offer!.oldP) / 250).round() * 250 : (slot <= 2 ? (base * 0.1).round() : 0);
+  int get total => base - disc;
+  String get end {
+    final h = 6 + slot + dur + 1;
+    return '${h > 12 ? h - 12 : h}:00 ${h >= 24 ? 'ص' : 'م'}';
+  }
+  String get dayShort => DAYS[day].$3.split(' ').take(2).join(' ');
+}
+
+Set<int> fullSlots(String placeId, int day) => {...(day == 0 ? {0, 1, 5} : day == 1 ? {3, 4} : {1}), if (placeId == 'p1' && day == 0) 5};
+
+class BookSlot extends Scr {
+  final String id;
+  final int dur;
+  final Offer? offer;
+  const BookSlot(this.id, {super.key, this.dur = 1, this.offer});
+  @override
+  Widget view(c, s) {
+    final d = s.get('d', Draft(id)..dur = dur..offer = offer);
+    final full = fullSlots(id, d.day);
+    final p = d.p;
+    void up(VoidCallback f) { f(); s.set('t', DateTime.now()); }
+    return screen(c, [
+      topbar('اختار الموعد', sub: p.name),
+      F([
+        T('تشرين الثاني 2026', 15, 800),
+        R([for (var i = 0; i < DAYS.length; i++) F([Tn(DAYS[i].$1, s: 12, w: 500, c: i == d.day ? WH : MU, al: 'CENTER'), Tn(DAYS[i].$2, s: 18, w: 800, c: i == d.day ? WH : INK, al: 'CENTER')], g: 4, al: 'c', w: 60, p: [10, 0], r: 16, bg: i == d.day ? P : G, tap: () => up(() { d.day = i; final f2 = fullSlots(id, i); if (f2.contains(d.slot)) d.slot = [0, 1, 2, 3, 4, 5].firstWhere((x) => !f2.contains(x)); }))], g: 10),
+      ], g: 12, w: 'fill', p: [4, 20]),
+      F([
+        R([T('الأوقات المتوفرة', 15, 800), R([BOX(w: 10, h: 10, r: 3, bg: G), T('محجوز', 12, 400, MU)], g: 4)], jc: 'sb', w: 'fill'),
+        R([for (var i = 0; i < SLOTS.length; i++) slot(SLOTS[i], st: full.contains(i) ? 'full' : 'free', on: i == d.slot, tap: full.contains(i) ? () => push(c, Waitlist(id, time: SLOTS[i])) : () => up(() => d.slot = i))], g: 11, wrap: true, w: 'fill'),
+      ], g: 12, w: 'fill', p: [8, 20]),
+      F([T('المدة', 15, 800), R([for (var i = 0; i < 3; i++) chip(DURS[i], i == d.dur, null, 13, () => up(() => d.dur = i))], g: 8)], g: 12, w: 'fill', p: [8, 20]),
+      F([
+        R([
+          T('عدد الأشخاص', 15, 800),
+          R([
+            F([I('minus', 18)], al: 'c', jc: 'c', w: 36, h: 36, r: 18, bg: G, tap: () => up(() => d.people = (d.people - 1).clamp(1, 20))),
+            T('${d.people}', 18, 800),
+            F([I('plus', 18, WH)], al: 'c', jc: 'c', w: 36, h: 36, r: 18, bg: P, tap: () => up(() => d.people = (d.people + 1).clamp(1, 20))),
+          ], g: 14, al: 'c', ltr: true),
+        ], jc: 'sb', w: 'fill'),
+      ], g: 12, w: 'fill', p: [8, 20]),
+    ], bottomBar: bottom([R([F([T('${DURS[d.dur]} · ${d.people} أشخاص', 12, 400, MU), T('${fmt(d.base)} د.ع', 18, 800, P)], g: 2), btn('كمّل', icon: 'chevron-left', w: 170, tap: () => push(c, BookPay(d)))], jc: 'sb', w: 'fill')]));
+  }
+}
+
+class BookPay extends Scr {
+  final Draft d;
+  const BookPay(this.d, {super.key});
+  @override
+  Widget view(c, s) {
+    final d = this.d;
+    final busy = s.get('busy', false);
+    Widget pm(String key, String icon, String t, String sub) {
+      final on = d.pay == key;
+      return R([R([F([I(icon, 20, P)], al: 'c', jc: 'c', w: 40, h: 40, r: 12, bg: PL), F([T(t, 15, 700), T(sub, 12, 400, MU)], g: 2)], g: 12), radio(on)], jc: 'sb', w: 'fill', p: 14, r: 16, bg: WH, sk: on ? P : LN, skw: on ? 2 : 1, tap: () { d.pay = key; s.set('x', key); });
+    }
+
+    final payName = {'cash': 'كاش', 'zain': 'زين كاش', 'card': 'بطاقة'}[d.pay]!;
+    return screen(c, [
+      topbar('تأكيد الحجز'),
+      F([
+        card([R([img(d.p.img, 64, 64, 14), F([T(d.p.name, 15, 800), meta('calendar', '${DAYS[d.day].$3} · ${SLOTS[d.slot].replaceAll(' م', '')} - ${d.end}'), meta('users', '${d.people} أشخاص')], g: 4)], g: 12, al: 'c', w: 'fill')], p: 12),
+        if (d.disc > 0) R([R([I('ticket-percent', 20, P), T(d.offer != null ? 'عرض: ${d.offer!.disc}' : 'عرض: خصم 10% للحجز قبل 9', 14, 700, P)], g: 8), T('مطبّق', 13, 800, P)], jc: 'sb', w: 'fill', p: 14, r: 16, bg: PL),
+        T('طريقة الدفع', 15, 800),
+        pm('cash', 'banknote', 'كاش بالمكان', 'ادفع لما توصل'),
+        pm('zain', 'wallet', 'زين كاش', 'دفع فوري من محفظتك'),
+        pm('card', 'credit-card', 'بطاقة', 'ماستر كارد / كي كارد'),
+        card([
+          R([T('الحجز (${DURS[d.dur]})', 14, 400, MU), T('${fmt(d.base)} د.ع', 14, 700)], jc: 'sb', w: 'fill'),
+          if (d.disc > 0) R([T('خصم العرض', 14, 400, MU), T('- ${fmt(d.disc)} د.ع', 14, 700, OK)], jc: 'sb', w: 'fill'),
+          divider(),
+          R([T('المجموع', 15, 800), T('${fmt(d.total)} د.ع', 17, 800, P)], jc: 'sb', w: 'fill'),
+          R([T('حصتك لو قسمتوها على ${d.people}', 12, 400, MU), T('${fmt((d.total / d.people).round())} د.ع', 12, 700)], jc: 'sb', w: 'fill'),
+        ], g: 10),
+      ], g: 12, w: 'fill', p: [4, 20]),
+    ], bottomBar: bottom([btn('أكّد الحجز', icon: 'check', busy: busy, tap: () async {
+      s.set('busy', true);
+      if (d.pay == 'zain') {
+        await repo.lag(1100);
+        s.set('busy', false);
+        if (c.mounted) push(c, const ErrorBook());
+        return;
+      }
+      final b = await repo.book(placeId: d.placeId, day: DAYS[d.day].$3, time: SLOTS[d.slot], dur: DURS[d.dur], people: d.people, total: d.total, pay: d.pay == 'cash' ? 'كاش بالمكان' : 'بطاقة · مدفوع');
+      s.set('busy', false);
+      if (c.mounted) push(c, BookDone(b, payName, d));
+    })]), bottomH: 100);
+  }
+}
+
+class BookDone extends Scr {
+  final Booking b;
+  final String pay;
+  final Draft d;
+  const BookDone(this.b, this.pay, this.d, {super.key});
+  @override
+  Widget view(c, s) => screen(c, [
+        BOX(w: 10, h: 30),
+        F([F([I('check', 40, WH, null, 3)], al: 'c', jc: 'c', w: 88, h: 88, r: 44, bg: P), Tn('تم الحجز!', s: 26, w: 800, al: 'CENTER'), Tn('دزّينالك تذكير قبل الموعد بساعة', s: 14, c: MU, al: 'CENTER')], g: 12, al: 'c', w: 'fill'),
+        F([
+          card([
+            F([S(qrSvg(b.code), 170, 170), Tn('رمز الحجز ${b.code}', s: 14, w: 800, al: 'CENTER'), Tn('اعرضه بالمكان لتسجيل الوصول', s: 12, c: MU, al: 'CENTER')], g: 8, al: 'c', w: 'fill'),
+            divider(),
+            R([T(d.p.name, 14, 700), T('المكان', 13, 400, MU)], jc: 'sb', w: 'fill'),
+            R([T('${d.dayShort} · ${SLOTS[d.slot].replaceAll(' م', '')} - ${d.end}', 14, 700), T('الموعد', 13, 400, MU)], jc: 'sb', w: 'fill'),
+            R([T('${fmt(b.total)} د.ع · $pay', 14, 700), T('الدفع', 13, 400, MU)], jc: 'sb', w: 'fill'),
+            R([T('+45 نقطة', 14, 800, P), T('نقاطك', 13, 400, MU)], jc: 'sb', w: 'fill'),
+          ], g: 12, p: 20),
+        ], w: 'fill', p: [24, 20]),
+      ], bottomBar: bottom([
+        R([btn('أضف للتقويم', icon: 'calendar', kind: 'g', tap: () => toast(c, 'انضاف الموعد لتقويمك')), btn('ادعُ أصحابك', icon: 'user-plus', kind: 's', tap: () => push(c, Group(b)))], g: 10, w: 'fill'),
+        btn('رجوع للرئيسية', kind: 'o', tap: () => onCustomerTab(c, 'الرئيسية')),
+      ]), bottomH: 160);
+}
+
+class Waitlist extends Scr {
+  final String id;
+  final String time;
+  const Waitlist(this.id, {super.key, this.time = '9:00 م'});
+  @override
+  Widget view(c, s) {
+    final p = repo.place(id);
+    final busy = s.get('busy', false);
+    return screen(c, [
+      topbar('الموعد ممتلئ', sub: p.name),
+      F([
+        card([R([F([I('hourglass', 24, P)], al: 'c', jc: 'c', w: 48, h: 48, r: 16, bg: PL), F([Tn(p.type == 'بليارد' ? 'كل الطاولات محجوزة ${time.replaceAll(' م', '')} - 11 م' : 'كل الأوقات محجوزة ${time.replaceAll(' م', '')} - 11 م', s: 15, w: 800, w2: 230), Tn('المكان مفتوح، بس ماكو موعد فاضي بهالوقت', s: 12, c: MU, w2: 230)], g: 4)], g: 12, al: 'c', w: 'fill')]),
+        T('سجّل بقائمة الانتظار', 16, 800),
+        Tn('إذا انلغى حجز نرسلك إشعار وعندك 10 دقايق تأكد', s: 14, c: MU, w2: 'fill', lh: 22),
+        R([T('الوقت المطلوب', 14, 500, MU), T('السبت · $time', 14, 700)], jc: 'sb', w: 'fill', p: 14, r: 14, bg: G),
+        R([T('ترتيبك المتوقع', 14, 500, MU), T('الثاني', 14, 800, P)], jc: 'sb', w: 'fill', p: 14, r: 14, bg: G),
+        T('أوقات قريبة فاضية', 16, 800),
+        R([for (final t in ['8:00 م', '11:00 م', '12:00 ص']) slot(t, tap: () => replace(c, BookSlot(id)))], g: 11, w: 'fill'),
+      ], g: 14, w: 'fill', p: [8, 20]),
+    ], bottomBar: bottom([btn('سجّلني بالانتظار', icon: 'bell-ring', busy: busy, tap: () async {
+      s.set('busy', true);
+      await repo.book(placeId: id, day: 'السبت 31 تشرين الأول', time: time, dur: 'ساعتين', people: 4, total: (p.price * 2), pay: 'كاش بالمكان', wait: true);
+      if (!c.mounted) return;
+      toast(c, 'سجّلناك بالانتظار، نبلغك أول ما يفرغ مكان');
+      onCustomerTab(c, 'حجوزاتي');
+    })]));
+  }
+}
+
+class ErrorBook extends Scr {
+  const ErrorBook({super.key});
+  @override
+  void init(ScrSt s) {
+    s.v['left'] = 552;
+    void tick() => Future.delayed(const Duration(seconds: 1), () {
+          if (!s.mounted) return;
+          s.set('left', (s.get('left', 552) - 1).clamp(0, 600));
+          tick();
+        });
+    tick();
+  }
+  @override
+  Widget view(c, s) {
+    final l = s.get('left', 552);
+    return screen(c, [
+      topbar('تأكيد الحجز'),
+      BOX(w: 10, h: 120),
+      F([
+        F([I('circle-x', 44, RD)], al: 'c', jc: 'c', w: 110, h: 110, r: 32, bg: '#FDECEC'),
+        Tn('ما تم الدفع', s: 20, w: 800, al: 'CENTER'),
+        Tn('رصيد زين كاش ما يكفي. الموعد محجوزلك 10 دقايق، جرّب طريقة دفع ثانية.', s: 14, c: MU, al: 'CENTER', w2: 300, lh: 22),
+        R([I('clock', 16, WR), T('باقي ${l ~/ 60}:${(l % 60).toString().padLeft(2, '0')}', 14, 800, WR)], g: 6, p: [8, 14], r: 12, bg: WRB),
+      ], g: 16, al: 'c', w: 'fill'),
+    ], bottomBar: bottom([btn('غيّر طريقة الدفع', tap: () => Navigator.pop(c)), btn('إلغاء', kind: 'g', tap: () => onCustomerTab(c, 'الرئيسية'))]), bottomH: 160);
+  }
+}

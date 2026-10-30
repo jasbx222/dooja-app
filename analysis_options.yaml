@@ -1,0 +1,19 @@
+include: package:flutter_lints/flutter.yaml
+analyzer:
+  errors:
+    non_constant_identifier_names: ignore
+    constant_identifier_names: ignore
+  exclude:
+    - build/**
+    - android/**
+    - web/**
+linter:
+  rules:
+    curly_braces_in_flow_control_structures: false
+    prefer_const_constructors_in_immutables: false
+    prefer_function_declarations_over_variables: false
+    unnecessary_underscores: false
+    non_constant_identifier_names: false
+    constant_identifier_names: false
+    use_key_in_widget_constructors: false
+    prefer_const_constructors: false
