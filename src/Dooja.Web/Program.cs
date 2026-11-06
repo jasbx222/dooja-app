@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Dooja.Web.Data;
@@ -9,9 +9,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 var builder = WebApplication.CreateBuilder(args);
 var dbProvider = builder.Configuration["Database:Provider"];
-var connectionString = builder.Configuration.GetConnectionString("Default")
-    ?? builder.Configuration.GetConnectionString("Dooja")
-    ?? "Data Source=Dooja.db";
+var connectionString = builder.Configuration.GetConnectionString("Default");
+if (string.IsNullOrWhiteSpace(connectionString))
+    connectionString = builder.Configuration.GetConnectionString("Dooja");
+if (string.IsNullOrWhiteSpace(connectionString))
+    connectionString = "Data Source=Dooja.db";
 builder.Services.AddDbContext<DoojaDb>(o =>
 {
     if (string.Equals(dbProvider, "Postgres", StringComparison.OrdinalIgnoreCase))
