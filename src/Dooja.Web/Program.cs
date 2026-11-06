@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Dooja.Web.Data;
@@ -6,6 +6,7 @@ using Dooja.Web.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 var builder = WebApplication.CreateBuilder(args);
 var dbProvider = builder.Configuration["Database:Provider"];
@@ -38,7 +39,22 @@ builder.Services.AddRateLimiter(o => { o.RejectionStatusCode = 429; o.AddPolicy(
 var app = builder.Build();
 using (var scope = app.Services.CreateScope()) await Seed.Run(scope.ServiceProvider.GetRequiredService<DoojaDb>(), app.Configuration, app.Environment);
 if (!app.Environment.IsDevelopment()) { app.UseExceptionHandler(); app.UseHsts(); app.UseHttpsRedirection(); }
-app.UseStaticFiles(); app.UseRouting(); app.UseCors(); app.UseRateLimiter(); app.UseAuthentication(); app.UseAuthorization();
-app.MapControllers(); app.MapControllerRoute("default", "{controller=Home}/{action=Index}/{id?}");
+var flutterAppRoot = Path.Combine(app.Environment.WebRootPath, "app");
+if (Directory.Exists(flutterAppRoot))
+{
+    var flutterFiles = new PhysicalFileProvider(flutterAppRoot);
+    app.UseDefaultFiles(new DefaultFilesOptions { FileProvider = flutterFiles, RequestPath = "/app" });
+    app.UseStaticFiles(new StaticFileOptions { FileProvider = flutterFiles, RequestPath = "/app" });
+}
+app.UseStaticFiles();
+app.UseRouting();
+app.UseCors();
+app.UseRateLimiter();
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapControllers();
+app.MapControllerRoute("default", "{controller=Home}/{action=Index}/{id?}");
+if (Directory.Exists(flutterAppRoot))
+    app.MapFallbackToFile("/app/{**path:nonfile}", "app/index.html");
 app.Run();
 public partial class Program;
