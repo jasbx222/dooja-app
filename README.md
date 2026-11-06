@@ -1,17 +1,22 @@
-# dooja
+# ضوجة (DOOJA)
 
-A new Flutter project.
+Flutter app + ASP.NET Core MVC dashboard/API (monorepo).
 
-## Getting Started
+- App: Flutter sources at repo root (`lib/`)
+- Dashboard + API: [`dashboard/`](dashboard/)
+- Windows + Cloudflare Tunnel + Postgres setup: [`docs/WINDOWS-SETUP.ar.md`](docs/WINDOWS-SETUP.ar.md)
+- Flutter API wiring: [`API_WIRING.md`](API_WIRING.md)
 
-This project is a starting point for a Flutter application.
+Public API/dashboard URL (after tunnel is up on your PC): https://dooja.cloudapps.trade
 
-A few resources to get you started if this is your first Flutter project:
+```bash
+# Dashboard (dev SQLite)
+export PATH="$HOME/.dotnet:$PATH"
+cd dashboard && dotnet run --project src/Dooja.Web --urls http://127.0.0.1:5080
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+# Flutter against local API
+flutter run --dart-define=API_BASE_URL=http://127.0.0.1:5080
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+# Flutter against production tunnel
+flutter run --dart-define=API_BASE_URL=https://dooja.cloudapps.trade
+```

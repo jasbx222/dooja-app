@@ -46,3 +46,12 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# .NET
+dashboard/**/bin/
+dashboard/**/obj/
+**/*.db
+**/*.db-shm
+**/*.db-wal
+.env
+dooja-tunnel.env

@@ -1,6 +1,6 @@
-// Mock repository: realistic Iraqi data, simulated latency, in-memory state.
-import 'dart:math';
 import 'package:flutter/foundation.dart';
+
+import 'api/api_client.dart';
 
 String fmt(int v) {
   final s = v.toString();
@@ -18,16 +18,40 @@ class Place {
   String kind; // open | slots | full
   final bool featured;
   int followers;
-  Place(this.id, this.img, this.name, this.type, this.area, this.dist, this.rating, this.nRev, this.price, this.unit, this.kind, this.cat, {this.featured = false, this.phone = '0770 555 1234', this.followers = 2400});
+  Place(
+    this.id,
+    this.img,
+    this.name,
+    this.type,
+    this.area,
+    this.dist,
+    this.rating,
+    this.nRev,
+    this.price,
+    this.unit,
+    this.kind,
+    this.cat, {
+    this.featured = false,
+    this.phone = '',
+    this.followers = 0,
+  });
   String get priceS => fmt(price);
 }
 
 class Review {
+  int id = 0;
   final String name, ago, text;
   final int stars;
   final bool photos;
   String? reply;
-  Review(this.name, this.ago, this.stars, this.text, {this.photos = false, this.reply});
+  Review(
+    this.name,
+    this.ago,
+    this.stars,
+    this.text, {
+    this.photos = false,
+    this.reply,
+  });
 }
 
 class Offer {
@@ -36,26 +60,66 @@ class Offer {
   final String placeId;
   int views, clicks, books;
   bool active;
-  Offer(this.id, this.placeId, this.img, this.place, this.disc, this.newP, this.oldP, this.exp, this.cat, this.area, {this.views = 0, this.clicks = 0, this.books = 0, this.active = true});
+  Offer(
+    this.id,
+    this.placeId,
+    this.img,
+    this.place,
+    this.disc,
+    this.newP,
+    this.oldP,
+    this.exp,
+    this.cat,
+    this.area, {
+    this.views = 0,
+    this.clicks = 0,
+    this.books = 0,
+    this.active = true,
+  });
 }
 
 class Booking {
+  int id = 0;
+  int hours = 1;
   final String code, placeId, day, time, dur, pay;
   final int people, total;
   String status; // مؤكد | بالانتظار | بانتظار القبول | مكتمل | ملغي
   bool rated;
-  Booking(this.code, this.placeId, this.day, this.time, this.dur, this.people, this.total, this.pay, this.status, {this.rated = false});
+  Booking(
+    this.code,
+    this.placeId,
+    this.day,
+    this.time,
+    this.dur,
+    this.people,
+    this.total,
+    this.pay,
+    this.status, {
+    this.rated = false,
+  });
 }
 
 class Reel {
+  int id = 0;
   final String img, placeId, place, caption, offer;
   int likes;
   bool liked = false, saved = false;
   final List<(String, String, String, int)> comments;
-  Reel(this.img, this.placeId, this.place, this.caption, this.offer, this.likes, this.comments) { liked = placeId == 'p1' && img == 'reel'; }
+  Reel(
+    this.img,
+    this.placeId,
+    this.place,
+    this.caption,
+    this.offer,
+    this.likes,
+    this.comments,
+  );
 }
 
 class OwnerReq {
+  int id = 0;
+  String code = "", day = "", time = "", placeId = "";
+  int people = 0;
   final String img, name, when, pay;
   final int total;
   String status; // new | ok | past | rejected
@@ -64,6 +128,7 @@ class OwnerReq {
 }
 
 class Notif {
+  int id = 0;
   final String icon, title, body, ago;
   bool fresh;
   Notif(this.icon, this.title, this.body, this.ago, [this.fresh = false]);
@@ -71,165 +136,613 @@ class Notif {
 
 enum Role { none, customer, owner }
 
+// All collections below are API response caches, never local seed data.
 class Repo extends ChangeNotifier {
   static final Repo i = Repo._();
-  Repo._();
-
-  static const demoCustomer = '07700000001', demoOwner = '07700000002', otpCode = '1234';
+  Repo._() : api = ApiClient();
+  @visibleForTesting
+  Repo.forTesting(this.api);
+  final ApiClient api;
+  final _detailIds = <String>{};
+  static const demoCustomer = '07700000001', demoOwner = '07700000002';
   Role role = Role.none;
-  String phone = '';
-  String userName = 'حسين علي';
-  String gov = 'بغداد';
-  String area = 'المنصور';
-  String birth = '12 / 05 / 2001';
-  int points = 1240;
-  bool homeLoaded = false;
-  bool offline = false;
-  final Set<String> interests = {'ملاعب', 'بادل', 'ألعاب إلكترونية', 'فعاليات'};
-  final Map<String, bool> settings = {'الحجوزات والتذكير': true, 'العروض الجديدة': true, 'ردود وتعليقات': false, 'اقتراحات حسب نشاطي': true, 'مشاركة موقعي': true, 'الوضع الداكن': false};
-
-  Future<void> lag([int ms = 600]) => Future.delayed(Duration(milliseconds: ms + Random().nextInt(300)));
-
-  final places = <Place>[
-    Place('p1', 'padel', 'ملعب بادل لاونج', 'بادل', 'المنصور', '1.5 كم', '4.8', '312', 20000, 'ساعة', 'slots', 'بادل'),
-    Place('p2', 'football', 'ملعب الشعب الخماسي', 'ملاعب', 'الشعب', '4.2 كم', '4.5', '188', 30000, 'ساعة', 'open', 'ملاعب'),
-    Place('p3', 'billiard', 'قصر البليارد', 'بليارد', 'الكرادة', '2.5 كم', '4.6', '140', 8000, 'ساعة', 'full', 'بليارد'),
-    Place('p4', 'gaming', 'Game Zone', 'ألعاب', 'زيونة', '3.1 كم', '4.7', '265', 5000, 'ساعة', 'open', 'ألعاب إلكترونية'),
-    Place('p5', 'pool', 'منتجع الريم', 'منتجعات', 'الجادرية', '6 كم', '4.9', '540', 25000, 'شخص', 'open', 'منتزهات ومنتجعات', featured: true),
-    Place('p6', 'cafe', 'كافيه ليالي', 'كافيه', 'عرصات الهندية', '3.8 كم', '4.7', '410', 6000, 'شخص', 'open', 'كافيهات', featured: true),
-    Place('p7', 'food', 'مطعم بيت بغداد', 'مطاعم', 'الكرادة', '2.9 كم', '4.6', '820', 18000, 'شخص', 'open', 'مطاعم'),
-    Place('p8', 'padel', 'بادل كلوب الجادرية', 'بادل', 'الجادرية', '3.4 كم', '4.7', '96', 25000, 'ساعة', 'open', 'بادل'),
-    Place('p9', 'football', 'نادي الزوراء للبادل', 'بادل', 'الحارثية', '5.0 كم', '4.4', '61', 18000, 'ساعة', 'slots', 'بادل'),
-    Place('p10', 'pool', 'مسبح الأمواج', 'مسابح', 'اليرموك', '4.6 كم', '4.5', '133', 10000, 'شخص', 'open', 'مسابح'),
-    Place('p11', 'friends', 'مهرجان ليالي بغداد', 'فعاليات', 'الزوراء', '5.5 كم', '4.8', '77', 15000, 'تذكرة', 'slots', 'فعاليات'),
-    Place('p12', 'gaming', 'كيدز لاند', 'أنشطة عائلية', 'المنصور', '1.9 كم', '4.6', '58', 7000, 'طفل', 'open', 'أنشطة عائلية'),
-  ];
-  Place place(String id) => places.firstWhere((p) => p.id == id);
-
-  final favs = <String>{'p1', 'p5'};
-  final follows = <String>{'p4', 'p6'};
-  void toggleFav(String id) { favs.contains(id) ? favs.remove(id) : favs.add(id); notifyListeners(); }
-  void toggleFollow(String id) { follows.contains(id) ? follows.remove(id) : follows.add(id); notifyListeners(); }
-
-  final reviews = <String, List<Review>>{
-    'p1': [
-      Review('علي حسين', 'قبل يومين', 5, 'الأرضية ممتازة والإضاءة قوية، الحجز من التطبيق كان سهل جداً.', photos: true, reply: 'تسلم علي، ننتظرك مرة لخ!'),
-      Review('زينب كريم', 'قبل أسبوع', 4, 'مكان مرتب، بس الموقف يزدحم بالليل. الأسعار مناسبة.'),
-    ],
+  bool get authenticated => api.token != null;
+  bool get isOwner => serverRole == 'Owner' || serverRole == 'Admin';
+  String serverRole = '',
+      phone = '',
+      userName = '',
+      gov = '',
+      area = '',
+      birth = '';
+  int points = 0;
+  bool homeLoaded = false, offline = false, loading = false;
+  String? error;
+  final interests = <String>{}; // Local-only preferences, no server endpoint.
+  final settings = <String, bool>{
+    'الحجوزات والتذكير': false,
+    'العروض الجديدة': false,
+    'ردود وتعليقات': false,
+    'اقتراحات حسب نشاطي': false,
+    'مشاركة موقعي': false,
+    'الوضع الداكن': false,
   };
-  List<Review> reviewsOf(String id) => reviews.putIfAbsent(id, () => [
-        Review('سجاد فلاح', 'قبل 3 أيام', 5, 'تجربة حلوة والتعامل راقي، أكيد نرجع.'),
-        Review('نور الهدى', 'قبل أسبوع', 4, 'المكان نظيف ومرتب، بس الزحمة بالويكند.'),
-      ]);
-  void addReview(String placeId, int stars, String text) {
-    reviewsOf(placeId).insert(0, Review(userName, 'الآن', stars, text, photos: true));
-    points += 20;
-    notifyListeners();
+  final places = <Place>[];
+  final ownerPlaces = <Place>[];
+  String? selectedOwnerId;
+  String? get ownerId => ownerPlaces.any((p) => p.id == selectedOwnerId)
+      ? selectedOwnerId
+      : ownerPlaces.isEmpty
+      ? null
+      : ownerPlaces.first.id;
+  Place? get ownerPlace => ownerId == null ? null : place(ownerId!);
+  final favs = <String>{}, follows = <String>{};
+  final reviews = <String, List<Review>>{};
+  final ownerReviews = <Review>[];
+  final offers = <Offer>[], ownerOffers = <Offer>[];
+  final reels = <Reel>[];
+  final bookings = <Booking>[];
+  final notifs = <Notif>[];
+  List<Notif> get ownerNotifs => notifs;
+  final ownerReqs = <OwnerReq>[];
+  int todayBookings = 0, todayIncome = 0;
+  final services = <(String, int, String)>[];
+  final serviceIds = <int>[];
+  final publicServices = <String, List<(String, int, String)>>{};
+  final availability = <String, Map<String, dynamic>>{};
+  final closedSlots = <Map<String, dynamic>>[];
+  Place place(String id) => places.firstWhere((p) => p.id == id);
+  bool hasPlace(String id) => places.any((p) => p.id == id);
+  List<Review> reviewsOf(String id) => reviews[id] ?? const [];
+  bool get isNewUser => userName == phone || userName.isEmpty;
+  void touch() => notifyListeners();
+
+  static String str(Map m, String k) => (m[k] ?? '').toString();
+  static int intVal(Map m, String k) => (m[k] as num?)?.toInt() ?? 0;
+  static List<Map<String, dynamic>> rows(dynamic data) =>
+      (data as List).map((x) => Map<String, dynamic>.from(x as Map)).toList();
+  static Place parsePlace(Map m) => Place(
+    str(m, 'id'),
+    str(m, 'imageKey'),
+    str(m, 'name'),
+    str(m, 'type'),
+    str(m, 'area'),
+    str(m, 'dist'),
+    str(m, 'rating'),
+    str(m, 'reviewCount'),
+    intVal(m, 'price'),
+    str(m, 'unit'),
+    str(m, 'kind'),
+    str(m, 'category'),
+    featured: m['featured'] == true,
+    phone: str(m, 'phone'),
+    followers: intVal(m, 'followers'),
+  );
+  static Review parseReview(Map m) => Review(
+    str(m, 'name'),
+    str(m, 'ago'),
+    intVal(m, 'stars'),
+    str(m, 'text'),
+    photos: m['hasPhotos'] == true,
+    reply: m['reply'] as String?,
+  )..id = intVal(m, 'id');
+  static Offer parseOffer(Map m) => Offer(
+    str(m, 'id'),
+    str(m, 'placeId'),
+    str(m, 'imageKey'),
+    str(m, 'title'),
+    str(m, 'disc'),
+    intVal(m, 'newPrice'),
+    intVal(m, 'oldPrice'),
+    str(m, 'expiryText'),
+    str(m, 'category'),
+    str(m, 'area'),
+    views: intVal(m, 'views'),
+    clicks: intVal(m, 'clicks'),
+    books: intVal(m, 'books'),
+    active: m['active'] == true,
+  );
+  static Booking parseBooking(Map m) =>
+      Booking(
+          str(m, 'code'),
+          str(m, 'placeId'),
+          str(m, 'day'),
+          str(m, 'time'),
+          str(m, 'duration'),
+          intVal(m, 'people'),
+          intVal(m, 'total'),
+          str(m, 'payMethod'),
+          str(m, 'status'),
+          rated: m['rated'] == true,
+        )
+        ..id = intVal(m, 'id')
+        ..hours = intVal(m, 'hours');
+  static OwnerReq parseRequest(Map m) =>
+      OwnerReq(
+          str(m['place'] as Map? ?? {}, 'imageKey'),
+          str(m['user'] as Map? ?? {}, 'name'),
+          '${str(m, 'day')} · ${str(m, 'time')} · ${str(m, 'duration')} · ${intVal(m, 'people')} أشخاص',
+          str(m, 'payMethod'),
+          intVal(m, 'total'),
+          switch (str(m, 'status')) {
+            'مؤكد' => 'ok',
+            'مكتمل' => 'past',
+            'ملغي' => 'rejected',
+            _ => 'new',
+          },
+        )
+        ..id = intVal(m, 'id')
+        ..arrived = m['arrived'] == true
+        ..day = str(m, 'day')
+        ..time = str(m, 'time')
+        ..placeId = str(m, 'placeId')
+        ..code = str(m, 'code')
+        ..people = intVal(m, 'people');
+  void profile(Map m) {
+    phone = str(m, 'phone');
+    userName = str(m, 'name');
+    gov = str(m, 'governorate');
+    area = str(m, 'area');
+    birth = str(m, 'birth');
+    points = intVal(m, 'points');
+    serverRole = str(m, 'role');
+    role = isOwner ? Role.owner : Role.customer;
   }
 
-  // owner reviews (for ملعب بادل لاونج)
-  final ownerReviews = <Review>[
-    Review('علي حسين', 'قبل يومين', 3, 'المكان حلو بس الإضاءة بالملعب الثاني ضعيفة شوية.'),
-    Review('سارة محمد', 'قبل يومين', 5, 'أفضل ملعب بادل ببغداد، الحجز كان سهل جداً', reply: 'تسلمين سارة، ننتظرك مرة ثانية'),
-  ];
-  void reply(Review r, String t) { r.reply = t; notifyListeners(); }
-
-  final offers = <Offer>[
-    Offer('o1', 'p2', 'football', 'ملعب الشعب الخماسي', 'خصم 25%', 30000, 40000, 'ينتهي 5 تشرين الثاني', 'ملاعب', 'الشعب'),
-    Offer('o2', 'p7', 'food', 'مطعم بيت بغداد', 'عرض 1+1', 18000, 36000, 'ينتهي بعد 3 أيام', 'مطاعم', 'الكرادة'),
-    Offer('o3', 'p4', 'gaming', 'Game Zone', 'ساعة مجانية', 15000, 20000, 'كل خميس', 'ألعاب', 'زيونة'),
-  ];
-  final ownerOffers = <Offer>[
-    Offer('m1', 'p1', 'padel', 'خصم 25% بعد 12 بالليل', 'فعّال', 15000, 20000, 'ينتهي بعد 4 أيام', 'بادل', 'المنصور', views: 2140, clicks: 310, books: 42),
-    Offer('m2', 'p1', 'friends', 'باقة الأصحاب', 'فعّال', 30000, 35000, 'ينتهي بعد 9 أيام', 'بادل', 'المنصور', views: 980, clicks: 120, books: 11),
-    Offer('m3', 'p1', 'food', 'ساعة مجانية للطلاب', 'متوقف', 0, 20000, 'وقفته يوم الخميس', 'بادل', 'المنصور', views: 640, clicks: 58, books: 6, active: false),
-  ];
-  void createOffer(String title, int pct, String to) {
-    final p = place('p1');
-    final np = (p.price * (100 - pct) / 100).round();
-    ownerOffers.insert(0, Offer('m${ownerOffers.length + 1}', 'p1', 'padel', title, 'فعّال', np, p.price, 'ينتهي 6 تشرين الثاني', 'بادل', 'المنصور'));
-    offers.insert(0, Offer('o${offers.length + 1}', 'p1', 'padel', p.name, 'خصم $pct%', np, p.price, 'ينتهي 6 تشرين الثاني', 'بادل', 'المنصور'));
-    notifyListeners();
+  Future<void> initialize() async {
+    try {
+      await api.restore();
+      if (authenticated) profile(await api.get('auth/me') as Map);
+    } catch (e) {
+      await api.clearToken();
+      error = e.toString();
+    }
+    await refresh();
   }
 
-  final reels = <Reel>[
-    Reel('reel', 'p1', 'ملعب بادل لاونج', 'سهرة بادل بالمنصور، الإضاءة الجديدة تجنن', 'خصم 10% قبل 9 بالليل', 1200, [
-      ('حيدر', 'وين بالضبط؟ قرب الساعة؟', '5د', 12),
-      ('مريم', 'يكدرون بنات يحجزون بأوقات خاصة؟', '12د', 8),
-      ('ملعب بادل لاونج', 'اي عدنا أوقات عائلية كل جمعة الصبح', '10د', 20),
-    ]),
-    Reel('gaming', 'p4', 'Game Zone', 'بطولة FIFA كل خميس، الجائزة 100 ألف', 'ساعة مجانية كل خميس', 8100, [('كرار', 'شلون أسجل بالبطولة؟', '1س', 4)]),
-    Reel('cafe', 'p6', 'كافيه ليالي', 'جلسة مسائية على الشط ويا أطيب شاي', 'خصم 15% للطلاب', 5600, [('سارة', 'المكان يجنن 😍', '2س', 9)]),
-  ];
-  void postReel(String caption) {
-    reels.insert(0, Reel('padel', 'p1', 'ملعب بادل لاونج', caption, 'خصم 25%', 0, []));
-    notifyListeners();
+  void _clearData() {
+    places.clear();
+    ownerPlaces.clear();
+    favs.clear();
+    follows.clear();
+    reviews.clear();
+    ownerReviews.clear();
+    offers.clear();
+    ownerOffers.clear();
+    reels.clear();
+    bookings.clear();
+    notifs.clear();
+    ownerReqs.clear();
+    services.clear();
+    serviceIds.clear();
+    publicServices.clear();
+    availability.clear();
+    closedSlots.clear();
+    todayBookings = 0;
+    todayIncome = 0;
   }
 
-  int _code = 4821;
-  final bookings = <Booking>[
-    Booking('DJ-4821', 'p1', 'السبت 31 تشرين الأول', '8:00 م', 'ساعتين', 4, 31500, 'كاش بالمكان', 'مؤكد'),
-    Booking('DJ-4790', 'p3', 'الأحد 1 تشرين الثاني', '9:00 م', 'ساعتين', 4, 31500, 'كاش بالمكان', 'بالانتظار'),
-    Booking('DJ-4802', 'p5', 'الجمعة 6 تشرين الثاني', '10:00 ص', '3 ساعات', 4, 31500, 'زين كاش', 'بانتظار القبول'),
-    Booking('DJ-4610', 'p4', 'الخميس 22 تشرين الأول', '7:00 م', 'ساعة', 3, 15000, 'كاش بالمكان', 'مكتمل'),
-    Booking('DJ-4555', 'p2', 'الجمعة 16 تشرين الأول', '6:00 م', 'ساعتين', 10, 60000, 'بطاقة', 'مكتمل', rated: true),
-  ];
-  Future<Booking> book({required String placeId, required String day, required String time, required String dur, required int people, required int total, required String pay, bool wait = false}) async {
-    await lag(900);
-    _code += 7;
-    final b = Booking('DJ-$_code', placeId, day, time, dur, people, total, pay, wait ? 'بالانتظار' : 'مؤكد');
-    bookings.insert(0, b);
-    if (!wait) points += 45;
-    notifs.insert(0, Notif(wait ? 'hourglass' : 'calendar-check', wait ? 'سجّلناك بالانتظار' : 'تم تأكيد حجزك', '${place(placeId).name} · $day $time', 'الآن', true));
-    notifyListeners();
-    return b;
+  Future<void> refresh() async {
+    if (loading) return;
+    loading = true;
+    error = null;
+    touch();
+    try {
+      final all = <Place>[];
+      for (var page = 1; page <= 10000; page++) {
+        final batch = rows(await api.get('places?page=$page&pageSize=100'))
+            .map(parsePlace)
+            .toList();
+        all.addAll(batch);
+        if (batch.length < 100) break;
+      }
+      _clearData();
+      places.addAll(all);
+      offers.addAll(rows(await api.get('offers')).map(parseOffer));
+      final rs = rows(await api.get('reels'));
+      for (final m in rs) {
+        final comments = rows(await api.get('reels/${m['id']}/comments'));
+        reels.add(
+          Reel(
+            str(m, 'imageKey'),
+            str(m, 'placeId'),
+            str(m['place'] as Map? ?? {}, 'name'),
+            str(m, 'caption'),
+            str(m, 'offerText'),
+            intVal(m, 'likes'),
+            comments
+                .map(
+                  (x) => (
+                    str(x, 'name'),
+                    str(x, 'text'),
+                    str(x, 'createdAt'),
+                    intVal(x, 'likes'),
+                  ),
+                )
+                .toList(),
+          )..id = intVal(m, 'id'),
+        );
+      }
+      if (authenticated) {
+        profile(await api.get('auth/me') as Map);
+        final bookingRows = rows(await api.get('bookings'));
+        bookings.addAll(bookingRows.map(parseBooking));
+        for (final m in bookingRows) {
+          if (!hasPlace(str(m, 'placeId')) && m['place'] is Map)
+            places.add(parsePlace(m['place'] as Map));
+        }
+        favs.addAll(rows(await api.get('favorites')).map((m) => str(m, 'id')));
+        follows.addAll(
+          rows(await api.get('places/following')).map((m) => str(m, 'id')),
+        );
+        notifs.addAll(
+          rows(await api.get('notifications')).map(
+            (m) => Notif(
+              str(m, 'icon'),
+              str(m, 'title'),
+              str(m, 'body'),
+              str(m, 'createdAt'),
+              m['fresh'] == true,
+            )..id = intVal(m, 'id'),
+          ),
+        );
+        if (isOwner) {
+          ownerPlaces.addAll(
+            rows(await api.get('owner/places')).map(parsePlace),
+          );
+          for (final p in ownerPlaces) {
+            if (!hasPlace(p.id)) places.add(p);
+          }
+          ownerReqs.addAll(
+            rows(await api.get('owner/bookings')).map(parseRequest),
+          );
+          ownerOffers.addAll(
+            rows(await api.get('owner/offers')).map(parseOffer),
+          );
+          ownerReviews.addAll(
+            rows(await api.get('owner/reviews')).map(parseReview),
+          );
+          final dashboard = await api.get('owner/dashboard') as Map;
+          todayBookings = intVal(dashboard, 'todayBookings');
+          todayIncome = intVal(dashboard, 'todayIncome');
+          await loadOwnerServices();
+        }
+      }
+      for (final id in _detailIds.where(hasPlace).toList()) {
+        reviews[id] = rows(
+          await api.get('reviews?placeId=${Uri.encodeComponent(id)}'),
+        ).map(parseReview).toList();
+        publicServices[id] = rows(await api.get('places/$id/services'))
+            .map((m) => (str(m, 'name'), intVal(m, 'price'), str(m, 'unit')))
+            .toList();
+      }
+      homeLoaded = true;
+      offline = false;
+    } catch (e) {
+      _clearData();
+      error = e.toString();
+      offline = true;
+      homeLoaded = true;
+    } finally {
+      loading = false;
+      touch();
+    }
   }
-  void cancel(Booking b) { b.status = 'ملغي'; notifyListeners(); }
 
-  final notifs = <Notif>[
-    Notif('calendar-check', 'تم قبول حجزك', 'ملعب بادل لاونج · السبت 8:00 م', 'قبل 5 دقايق', true),
-    Notif('hourglass', 'صار عندك مكان', 'انلغى حجز بقصر البليارد، أكّد خلال 10 دقايق', 'قبل 20 دقيقة', true),
-    Notif('badge-percent', 'عرض جديد من Game Zone', 'ساعة مجانية كل خميس', 'الأربعاء'),
-    Notif('trophy', 'قربت تخلص التحدي', 'باقي حجز واحد وتاخذ 150 نقطة', 'الثلاثاء'),
-    Notif('message-circle', 'رد على تقييمك', 'ملعب بادل لاونج رد على تقييمك', 'الاثنين'),
-  ];
+  Future<bool> run(Future<void> Function() action, {bool reload = true}) async {
+    try {
+      error = null;
+      await action();
+      if (reload) await refresh();
+      touch();
+      return error == null;
+    } catch (e) {
+      error = e.toString();
+      touch();
+      return false;
+    }
+  }
 
-  // owner
-  final ownerReqs = <OwnerReq>[
-    OwnerReq('friends', 'حسين علي', 'السبت 8:00 م · ساعتين · 4 أشخاص', 'زين كاش · مدفوع', 31500, 'new'),
-    OwnerReq('football', 'مصطفى كريم', 'الأحد 10:00 م · ساعة', 'نقداً بالمكان', 20000, 'new'),
-    OwnerReq('cafe', 'علي ناظم', 'الاثنين 9:00 م · ساعتين · 6 أشخاص', 'نقداً بالمكان', 35000, 'new'),
-    OwnerReq('gaming', 'زيد حيدر', 'الأحد 11:00 م · ساعة', 'بطاقة · مدفوع', 20000, 'ok'),
-    OwnerReq('padel', 'عباس محمد', 'الخميس 7:00 م · ساعتين', 'نقداً بالمكان', 35000, 'past'),
-  ];
-  int todayBookings = 9, todayIncome = 185000;
-  void accept(OwnerReq r) { r.status = 'ok'; todayBookings++; notifyListeners(); }
-  void reject(OwnerReq r) { r.status = 'rejected'; notifyListeners(); }
-  void arrive(OwnerReq r) { r.arrived = true; todayIncome += r.total; notifyListeners(); }
-  final ownerNotifs = <Notif>[
-    Notif('calendar-check', 'طلب حجز جديد', 'حسين علي · السبت 8:00 م · 4 أشخاص', 'قبل 3 دقايق', true),
-    Notif('star', 'تقييم جديد 3 نجوم', 'علي حسين كتب تقييم، رد عليه', 'قبل ساعة', true),
-    Notif('circle-check', 'تفعّل مشروعك', 'ملعب بادل لاونج صار يظهر للناس', 'أمس'),
-    Notif('trending-up', 'عرضك ماشي زين', 'خصم 25% جاب 42 حجز هالأسبوع', 'الخميس'),
-    Notif('hourglass', 'العرض قرب يخلص', 'باقة الأصحاب تنتهي بعد يومين', 'الأربعاء'),
-  ];
-  final services = <(String, int, String)>[('ساعة ملعب', 20000, 'ساعة'), ('باقة ساعتين', 35000, 'باقة'), ('تأجير مضارب', 3000, 'مضرب')];
-  final closed = <String>{'10:00 م'};
-  bool projectPending = false;
+  Future<void> requestOtp(String ph) async {
+    await api.post('auth/request-otp', {'phone': ph});
+  }
 
-  Future<Role> login(String ph) async {
-    await lag();
-    phone = ph;
-    role = ph == demoOwner ? Role.owner : Role.customer;
-    userName = role == Role.owner ? 'أبو علي' : 'حسين علي';
-    notifyListeners();
+  Future<Role> login(String ph, String code) async {
+    final m = await api.post('auth/verify', {'phone': ph, 'code': code}) as Map;
+    await api.saveToken(str(m, 'token'));
+    profile(m['user'] as Map);
+    await refresh();
     return role;
   }
-  bool get isNewUser => phone != demoCustomer && phone != demoOwner;
-  void logout() { role = Role.none; homeLoaded = false; notifyListeners(); }
-  void touch() => notifyListeners();
+
+  Future<void> logout() async {
+    await api.clearToken();
+    role = Role.none;
+    serverRole = '';
+    phone = '';
+    userName = '';
+    gov = '';
+    area = '';
+    birth = '';
+    points = 0;
+    interests.clear();
+    _detailIds.clear();
+    _clearData();
+    homeLoaded = false;
+    touch();
+    await refresh();
+  }
+
+  Future<bool> saveProfile({
+    String? name,
+    String? governorate,
+    String? location,
+    String? birthday,
+  }) => run(() async {
+    profile(
+      await api.put('auth/me', {
+        'name': name ?? userName,
+        'governorate': governorate ?? gov,
+        'area': location ?? area,
+        'birth': birthday ?? birth,
+      }) as Map,
+    );
+  });
+  Future<bool> toggleFav(String id) => run(() async {
+    await api.post('favorites/$id/toggle');
+  });
+  Future<bool> toggleFollow(String id) => run(() async {
+    await api.post('places/$id/follow');
+  });
+  Future<void> loadPlace(String id) async {
+    _detailIds.add(id);
+    await run(() async {
+      final p = parsePlace(await api.get('places/$id') as Map);
+      places.removeWhere((x) => x.id == id);
+      places.add(p);
+      reviews[id] = rows(
+        await api.get('reviews?placeId=${Uri.encodeComponent(id)}'),
+      ).map(parseReview).toList();
+      publicServices[id] = rows(await api.get('places/$id/services'))
+          .map((m) => (str(m, 'name'), intVal(m, 'price'), str(m, 'unit')))
+          .toList();
+    }, reload: false);
+  }
+
+  Future<bool> addReview(
+    String placeId,
+    int stars,
+    String text,
+    int bookingId,
+  ) => run(() async {
+    await api.post('reviews', {
+      'placeId': placeId,
+      'stars': stars,
+      'text': text,
+      'bookingId': bookingId,
+    });
+    await loadPlace(placeId);
+  });
+  Future<bool> reply(Review r, String text) => run(() async {
+    await api.post('reviews/${r.id}/reply', {'text': text});
+  });
+  Future<bool> toggleOffer(Offer o) => run(() async {
+    await api.post('owner/offers/${o.id}/toggle');
+  });
+  Future<bool> createOffer(
+    String title,
+    int pct,
+    String to, {
+    String? expiresOn,
+  }) => run(() async {
+    final p = ownerPlace;
+    if (p == null) throw const ApiException('اختار مشروعاً أولاً');
+    await api.post('owner/offers', {
+      'placeId': p.id,
+      'title': title,
+      'disc': 'خصم $pct%',
+      'newPrice': (p.price * (100 - pct) / 100).round(),
+      'oldPrice': p.price,
+      'expiryText': expiresOn ?? '',
+      'expiresOn': expiresOn,
+      'active': true,
+    });
+  });
+  Future<bool> viewOffer(Offer o) => run(() async {
+    await api.get('offers/${o.id}');
+  }, reload: false);
+  Future<bool> clickOffer(Offer o) => run(() async {
+    await api.post('offers/${o.id}/click');
+  }, reload: false);
+  Future<bool> postReel(String caption) => run(() async {
+    final p = ownerPlace;
+    if (p == null) throw const ApiException('اختار مشروعاً أولاً');
+    await api.post('reels', {
+      'placeId': p.id,
+      'caption': caption,
+      'imageKey': p.img,
+      'offerText': '',
+    });
+  });
+  Future<bool> likeReel(Reel r) => run(() async {
+    final m = await api.post('reels/${r.id}/like') as Map;
+    r.liked = m['liked'] == true;
+    r.likes = intVal(m, 'likes');
+  }, reload: false);
+  Future<bool> comment(Reel r, String text) => run(() async {
+    await api.post('reels/${r.id}/comments', {'text': text});
+    final cs = rows(await api.get('reels/${r.id}/comments'));
+    r.comments
+      ..clear()
+      ..addAll(
+        cs.map(
+          (x) => (
+            str(x, 'name'),
+            str(x, 'text'),
+            str(x, 'createdAt'),
+            intVal(x, 'likes'),
+          ),
+        ),
+      );
+  }, reload: false);
+  Future<Booking> book({
+    required String placeId,
+    required String day,
+    required String time,
+    required String dur,
+    required int people,
+    required int total,
+    required String pay,
+    bool wait = false,
+    String? offerId,
+  }) async {
+    final b = parseBooking(
+      await api.post('bookings', {
+        'placeId': placeId,
+        'day': day,
+        'time': time24(time),
+        'hours': dur == 'ساعة'
+            ? 1
+            : dur == 'ساعتين'
+            ? 2
+            : 3,
+        'people': people,
+        'payMethod': pay,
+        'wait': wait,
+        'offerId': offerId,
+      }) as Map,
+    );
+    await refresh();
+    return b;
+  }
+
+  Future<bool> cancel(Booking b) => run(() async {
+    final m = await api.post('bookings/${b.id}/cancel') as Map;
+    b.status = str(m, 'status');
+  });
+  Future<bool> accept(OwnerReq r) => status(r, 'مؤكد');
+  Future<bool> reject(OwnerReq r) => status(r, 'ملغي');
+  Future<bool> status(OwnerReq r, String status) => run(() async {
+    await api.post('owner/bookings/${r.id}/status', {'status': status});
+  });
+  Future<bool> arrive(OwnerReq r) => run(() async {
+    await api.post('owner/bookings/${r.id}/arrive');
+  });
+  Future<bool> readNotif(Notif n) => run(() async {
+    await api.post('notifications/${n.id}/read');
+    n.fresh = false;
+  }, reload: false);
+  Future<bool> readAll() => run(() async {
+    await api.post('notifications/read-all');
+    for (final n in notifs) {
+      n.fresh = false;
+    }
+  }, reload: false);
+  Future<void> loadOwnerServices() async {
+    services.clear();
+    serviceIds.clear();
+    if (ownerId == null) return;
+    for (final m in rows(await api.get('owner/services/$ownerId'))) {
+      services.add((str(m, 'name'), intVal(m, 'price'), str(m, 'unit')));
+      serviceIds.add(intVal(m, 'id'));
+    }
+  }
+
+  Future<bool> saveService(int index, (String, int, String) value) =>
+      run(() async {
+        if (ownerId == null) throw const ApiException('اختار مشروعاً أولاً');
+        final body = {
+          'placeId': ownerId,
+          'name': value.$1,
+          'price': value.$2,
+          'unit': value.$3,
+        };
+        if (index >= 0 && index < serviceIds.length) {
+          await api.put('owner/services/${serviceIds[index]}', body);
+        } else {
+          await api.post('owner/services', body);
+        }
+      });
+  Future<bool> deleteService(int index) => run(() async {
+    await api.delete('owner/services/${serviceIds[index]}');
+  });
+  Future<bool> savePlace(Map<String, dynamic> data, {String? id}) =>
+      run(() async {
+        if (id == null) {
+          await api.post('owner/places', data);
+        } else {
+          await api.put('owner/places/$id', data);
+        }
+      });
+  Future<void> loadAvailability(String id, String day) async {
+    final key = '$id/$day';
+    await run(() async {
+      availability[key] = Map<String, dynamic>.from(
+        await api.get('places/$id/availability?day=$day') as Map,
+      );
+    }, reload: false);
+  }
+
+  Set<int> occupied(String id, String day) {
+    final a = availability['$id/$day'];
+    if (a == null) return {for (var h = 0; h < 24; h++) h};
+    final hours = <int>{};
+    for (final t in a['closed'] as List) {
+      hours.add(int.parse(t.toString().split(':').first));
+    }
+    for (final b in a['booked'] as List) {
+      final h = int.parse(b['time'].toString().split(':').first);
+      for (var i = 0; i < (b['hours'] as num).toInt(); i++) {
+        hours.add(h + i);
+      }
+    }
+    return hours;
+  }
+
+  Future<void> loadClosed(String day) async {
+    if (ownerId == null) return;
+    await run(() async {
+      closedSlots
+        ..clear()
+        ..addAll(
+          rows(await api.get('owner/closed-slots/$ownerId'))
+              .where((x) => x['day'] == day),
+        );
+    }, reload: false);
+    await loadAvailability(ownerId!, day);
+  }
+
+  Future<bool> toggleClosed(String day, String time) => run(() async {
+    if (ownerId == null) throw const ApiException('اختار مشروعاً أولاً');
+    final match = closedSlots
+        .where((x) => x['day'] == day && x['time'] == time)
+        .toList();
+    if (match.isEmpty) {
+      await api.post('owner/closed-slots', {
+        'placeId': ownerId,
+        'day': day,
+        'time': time,
+      });
+    } else {
+      await api.delete('owner/closed-slots/${match.first['id']}');
+    }
+    await loadClosed(day);
+  }, reload: false);
 }
 
 final repo = Repo.i;
-String phoneFmt(String p) => p.length == 11 ? '${p.substring(0, 4)} ${p.substring(4, 7)} ${p.substring(7)}' : p;
+String phoneFmt(String p) => p.length == 11
+    ? '${p.substring(0, 4)} ${p.substring(4, 7)} ${p.substring(7)}'
+    : p;
 String kfmt(int n) => n >= 1000 ? '${(n / 1000).toStringAsFixed(1)}K' : '$n';
+String isoDay([int offset = 0]) {
+  final d = DateTime.now().add(Duration(days: offset));
+  return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+}
+
+String time24(String time) {
+  if (!time.contains('م') && !time.contains('ص')) return time;
+  final parts = time.split(' ').first.split(':');
+  var h = int.parse(parts.first) % 12;
+  if (time.contains('م')) h += 12;
+  return '${h.toString().padLeft(2, '0')}:${parts.length > 1 ? parts[1] : '00'}';
+}
