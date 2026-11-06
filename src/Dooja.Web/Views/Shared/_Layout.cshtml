@@ -1,0 +1,13 @@
+@{var current=ViewContext.RouteData.Values["controller"]?.ToString(); var login=current=="Auth";}
+<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><meta name="theme-color" content="#7C3AED"/><link rel="icon" href="/logo/mark_purple.svg" type="image/svg+xml"/><title>@ViewData["Title"] · ضوجة</title><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet"/><link rel="stylesheet" href="~/css/dooja.css" asp-append-version="true"/></head>
+<body class="@(login?"login-body":"")">
+@if(!login){<aside class="sidebar"><a class="brand" href="/"><img class="brand-mark" src="/logo/mark_purple.svg" alt=""/>ضوجة<span>DOOJA</span></a><div class="brand-sub">لوحة إدارة التجارب الحلوة</div><small class="nav-label">مساحة العمل</small><nav aria-label="القائمة الرئيسية">
+@foreach(var item in new[]{("Home","◈","نظرة عامة"),("Places","⌖","الأماكن"),("Bookings","▦","الحجوزات"),("Offers","◇","العروض"),("Users","♧","المستخدمون"),("Reviews","☆","التقييمات")}){<a href="/@item.Item1" class="@(current==item.Item1?"active":"")"><span>@item.Item2</span>@item.Item3</a>}
+</nav><div class="sidebar-note"><span class="live-dot"></span> متصل بقاعدة البيانات<small>كل ضوجة وراها طلعة</small></div><div class="admin-card"><div class="avatar">@User.Identity?.Name?[..1]</div><div><strong>@User.Identity?.Name</strong><small>مدير المنصة</small></div><form asp-controller="Auth" asp-action="Logout" method="post"><button class="icon-btn" title="تسجيل الخروج">↗</button></form></div></aside>
+<div class="workspace"><header class="topbar"><div class="breadcrumb">ضوجة <span>/</span> @ViewData["Title"]</div><div class="top-meta"><span class="live-dot"></span> إدارة المنصة <span class="avatar small">ض</span></div></header><main>
+@if(TempData["Success"] is string success){<div class="alert success" role="status">✓ @success</div>}
+@if(TempData["Error"] is string error){<div class="alert error" role="alert">@error</div>}
+@RenderBody()</main><footer>ضوجة — نغيّر جوّك <span>ASP.NET Core · البيانات من SQLite</span></footer></div>
+}else{ @RenderBody() }
+@await RenderSectionAsync("Scripts",required:false)
+</body></html>
