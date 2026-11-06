@@ -9,6 +9,10 @@ Flutter app + ASP.NET Core MVC dashboard/API (monorepo).
 
 Public API/dashboard URL (after tunnel is up on your PC): https://dooja.cloudapps.trade
 
+- **iPhone PWA (Add to Home Screen):** https://dooja.cloudapps.trade/app/
+- MVC dashboard stays at `/` (login `/Auth/Login`); Flutter customer app at `/app/`
+- iOS / TestFlight steps (Arabic): [`docs/IOS-TESTFLIGHT.ar.md`](docs/IOS-TESTFLIGHT.ar.md)
+
 ```bash
 # Dashboard (dev SQLite)
 export PATH="$HOME/.dotnet:$PATH"
