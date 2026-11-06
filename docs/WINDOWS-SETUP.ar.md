@@ -190,3 +190,22 @@ curl -I https://dooja.cloudapps.trade
 - لا تنشر `dooja-tunnel.env` ولا connection string ولا `Jwt__Key` ولا `Admin__Password` بالشات أو بالريبو.
 - `Seed:Demo` لازم `false` بالإنتاج.
 - حسابات وأرقام التطوير للتجربة المحلية فقط — مو للإنتاج العام.
+
+## تطبيق الآيفون (PWA) — جاهز على /app
+
+بعد ما `Dooja.Web` والتانل شغّالين:
+
+1. افتح على الآيفون بـ Safari: **https://dooja.cloudapps.trade/app/**
+2. مشاركة → إضافة إلى الشاشة الرئيسية.
+3. لوحة التحكم MVC تبقى على `/` و`/Auth/Login`. الـ API على `/api/*`.
+
+تفاصيل IPA / TestFlight: [`IOS-TESTFLIGHT.ar.md`](IOS-TESTFLIGHT.ar.md)
+
+لنشر نسخة Flutter web محدّثة إلى `wwwroot/app`:
+
+```bash
+# من جذر المستودع (Linux/Mac أو Git Bash)
+./dashboard/scripts/publish-flutter-web.sh
+# ثم أعد تشغيل Dooja.Web
+```
+
