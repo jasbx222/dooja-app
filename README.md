@@ -1,6 +1,8 @@
 # ضوجة · DOOJA — ASP.NET Core 8 MVC + Web API
 
-Arabic RTL administration dashboard and JSON API for [jasbx222/dooja-app](https://github.com/jasbx222/dooja-app). Built locally, without cloning or changing the Flutter repository and without pushing anything to GitHub.
+مستودع الداشبورد والـ API فقط. تطبيق Flutter (العميل) موجود في مستودع منفصل: [jasbx222/dooja-app](https://github.com/jasbx222/dooja-app).
+
+Arabic RTL administration dashboard and JSON API. This repository is the backend and the admin dashboard. The Flutter customer and owner app is [jasbx222/dooja-app](https://github.com/jasbx222/dooja-app). Clone this repo at its root; there is no nested `dashboard/` folder.
 
 ## Run
 
@@ -8,10 +10,9 @@ Requires .NET SDK 8 (tested with **8.0.427**).
 
 ```bash
 export PATH="$HOME/.dotnet:$PATH"
-cd /workspace/dooja-dashboard
 dotnet restore
 dotnet build
-dotnet run --project src/Dooja.Web
+dotnet run --project src/Dooja.Web --urls http://127.0.0.1:5080
 ```
 
 Open **http://localhost:5080**. The launch profile selects Development. Without a launch profile:
@@ -161,8 +162,9 @@ The smoke test writes test records, so **never run it against production**. It v
 1. Host behind HTTPS and configure `AllowedHosts` for the real domain. Production uses HSTS and HTTPS redirection. Configure forwarded headers safely if deploying behind a trusted reverse proxy.
 2. Use a separate empty production DB, `Seed__Demo=false`, a strong `Admin__Password` for its first startup and a secret **at least 32-byte** `Jwt__Key` (environment variables or a secret store, not source control). Back up SQLite and persist the cookie data-protection key directory when using containers. Scale beyond one instance with a shared key store/database and distributed rate limiting.
 3. **SMS delivery is not implemented**: production OTP endpoints intentionally return 503 instead of accepting 1234. Integrate a real SMS OTP provider, secure challenge storage, expiry/attempt limits and verification before enabling production mobile login.
-4. **Flutter has not been modified or wired yet.** Replace `Repo`'s in-memory lists and fake latency with HTTP calls to these endpoints, persist tokens securely, add auth headers and error handling, and refresh lists after mutations. Use `http://10.0.2.2:5080` on Android emulator, a reachable HTTPS/LAN host on physical devices. A server bound to 127.0.0.1 is not reachable from a phone. Use explicit CORS origins in production (`Cors__Origins__0`); Development allows any origin.
-5. Adapt Dart names: `img→imageKey`, `cat→category`, `nRev→reviewCount` (integer), `rating` (number), `dur→duration`, `pay→payMethod`, `newP/oldP→newPrice/oldPrice`, `exp→expiryText`, `photos→hasPhotos`. Format money/day/time in Flutter. Use ID/code separately; use `hours` rather than trying to parse Arabic duration strings.
-6. Card/ZainCash processing, refunds/settlement, real SMS, push delivery (FCM/APNs), actual video/photo uploads/storage, live distance/geolocation, capacity/resource configuration, profile interests/settings, deployment and actual Flutter end-to-end testing remain integration work. Notifications currently persist in DB and are retrieved by the app; no push is claimed. Reels use the existing image keys and do not pretend to contain real uploaded videos.
+4. The Flutter client in [jasbx222/dooja-app](https://github.com/jasbx222/dooja-app) calls this API when built with `API_BASE_URL` (no `/api` suffix). Use `http://10.0.2.2:5080` on an Android emulator whose host runs the API, and a reachable HTTPS host on a physical phone. A server bound to 127.0.0.1 is not reachable from a phone. Set explicit CORS origins in production (`Cors__Origins__0`); Development allows any origin. Republish the hosted PWA with `FLUTTER_APP_DIR=/path/to/dooja-app ./scripts/publish-flutter-web.sh`.
+5. Card/ZainCash processing, refunds/settlement, real SMS, push delivery (FCM/APNs), actual video/photo uploads/storage, live distance/geolocation, capacity/resource configuration, and profile interests/settings remain integration work. Notifications currently persist in the database and are retrieved by the app; no push is sent. Reels use the existing image keys and do not contain uploaded video files.
 
-This is a working, persisted dashboard/API implementation and development seed, **not a claim that the existing Flutter app already uses this host or that third-party services are configured**.
+Windows + Cloudflare Tunnel + Postgres steps: [`docs/WINDOWS-SETUP.ar.md`](docs/WINDOWS-SETUP.ar.md).
+
+This is a working, persisted dashboard/API implementation and development seed. Third-party SMS and payment providers are not configured.
