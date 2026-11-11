@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../dsl.dart';
@@ -205,67 +206,39 @@ class Login extends Scr {
         w: 'fill',
         p: [24, 24],
       ),
-      R(
-        [
-          N(divider(), fillW: true),
-          T('أو', 13, 400, MU),
-          N(divider(), fillW: true),
-        ],
-        g: 12,
-        w: 'fill',
-        p: [8, 24],
-        al: 'c',
-      ),
-      F(
-        [
-          btn(
-            'كمّل بحساب Apple',
-            icon: 'smartphone',
-            kind: 'g',
-            tap: () => toast(c, 'استخدم الحساب التجريبي برقم الموبايل'),
-          ),
-          btn(
-            'كمّل بحساب Google',
-            icon: 'mail',
-            kind: 'g',
-            tap: () => toast(c, 'استخدم الحساب التجريبي برقم الموبايل'),
-          ),
-        ],
-        g: 12,
-        w: 'fill',
-        p: [0, 24],
-      ),
+      if (kDebugMode) ...[
+        BOX(w: 10, h: 16),
+        F(
+          [
+            R([
+              I('info', 14, P),
+              T('تطوير فقط · الرمز 1234', 12, 700, P),
+            ], g: 6),
+            F(
+              [T('زبون: 07700000001', 12, 500, INK)],
+              tap: () {
+                ctl.text = '07700000001';
+                s.set('err', null);
+              },
+            ),
+            F(
+              [T('صاحب مشروع: 07700000002', 12, 500, INK)],
+              tap: () {
+                ctl.text = '07700000002';
+                s.set('err', null);
+              },
+            ),
+          ],
+          g: 4,
+          al: 'c',
+          p: [10, 14],
+          r: 14,
+          bg: BG,
+        ),
+      ],
       BOX(w: 10, h: 24),
       F(
         [
-          F(
-            [
-              R([
-                I('info', 14, P),
-                T('حسابات تجريبية · الرمز 1234', 12, 700, P),
-              ], g: 6),
-              F(
-                [T('زبون: 07700000001', 12, 500, INK)],
-                tap: () {
-                  ctl.text = '07700000001';
-                  s.set('err', null);
-                },
-              ),
-              F(
-                [T('صاحب مشروع: 07700000002', 12, 500, INK)],
-                tap: () {
-                  ctl.text = '07700000002';
-                  s.set('err', null);
-                },
-              ),
-            ],
-            g: 4,
-            al: 'c',
-            p: [10, 14],
-            r: 14,
-            bg: BG,
-          ),
-          BOX(h: 10, w: 1),
           Tn(
             'بالمتابعة توافق على الشروط وسياسة الخصوصية',
             s: 12,

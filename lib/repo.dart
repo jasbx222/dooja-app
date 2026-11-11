@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 
 import 'api/api_client.dart';
@@ -136,6 +138,87 @@ class Notif {
 
 enum Role { none, customer, owner }
 
+class ShopCategory {
+  final int id, sort;
+  final String name, image;
+  ShopCategory(this.id, this.name, this.image, this.sort);
+}
+
+class ShopProduct {
+  final int id, price, stock, categoryId;
+  final int? compareAt, discount;
+  final String name, description, specs, category, image;
+  final List<String> images;
+  final bool available, featured;
+  ShopProduct({
+    required this.id,
+    required this.name,
+    required this.price,
+    required this.stock,
+    required this.categoryId,
+    required this.category,
+    required this.image,
+    required this.available,
+    this.compareAt,
+    this.discount,
+    this.description = '',
+    this.specs = '',
+    this.images = const [],
+    this.featured = false,
+  });
+}
+
+class CartLine {
+  final int id, productId, qty, unitPrice, lineTotal, stock;
+  final String name, image;
+  final bool priceChanged, available;
+  CartLine(
+    this.id,
+    this.productId,
+    this.name,
+    this.image,
+    this.qty,
+    this.unitPrice,
+    this.lineTotal,
+    this.stock,
+    this.priceChanged,
+    this.available,
+  );
+}
+
+class ShopArea {
+  final int id, fee;
+  final String governorate, area;
+  final bool customFee;
+  ShopArea(this.id, this.governorate, this.area, this.fee, this.customFee);
+}
+
+class ShopOrder {
+  final int id, subtotal, discount, delivery, total;
+  final String number, status, name, phone, governorate, area, address, notes, pay, createdAt;
+  final List<CartLine> items;
+  final List<(String, String, String)> history;
+  ShopOrder(
+    this.id,
+    this.number,
+    this.status,
+    this.createdAt,
+    this.name,
+    this.phone,
+    this.governorate,
+    this.area,
+    this.address,
+    this.notes,
+    this.subtotal,
+    this.discount,
+    this.delivery,
+    this.total,
+    this.pay,
+    this.items,
+    this.history,
+  );
+}
+
 // All collections below are API response caches, never local seed data.
 class Repo extends ChangeNotifier {
   static final Repo i = Repo._();
@@ -182,6 +265,24 @@ class Repo extends ChangeNotifier {
   final reels = <Reel>[];
   final bookings = <Booking>[];
   final notifs = <Notif>[];
+  bool shopEnabled = true, shopLoading = false;
+  String? shopError;
+  int shopDeliveryFee = 0, shopMinOrder = 0, shopPage = 1, shopTotal = 0;
+  int cartSubtotal = 0, cartDiscount = 0;
+  final shopCategories = <ShopCategory>[];
+  final shopProducts = <ShopProduct>[];
+  final cartLines = <CartLine>[];
+  final cartWarnings = <String>[];
+  final shopOrders = <ShopOrder>[];
+  final payMethods = <(String, String)>[];
+  final deliveryAreas = <ShopArea>[];
+  ShopProduct? currentProduct;
+  int get cartCount => cartLines.fold(0, (sum, line) => sum + line.qty);
+  String media(String? path) {
+    if (path == null || path.isEmpty) return '';
+    if (path.startsWith('http')) return path;
+    return '${api.baseUrl.replaceAll(RegExp(r'/+$'), '')}$path';
+  }
   List<Notif> get ownerNotifs => notifs;
   final ownerReqs = <OwnerReq>[];
   int todayBookings = 0, todayIncome = 0;
@@ -291,10 +392,20 @@ class Repo extends ChangeNotifier {
   Future<void> initialize() async {
     try {
       await api.restore();
-      if (authenticated) profile(await api.get('auth/me') as Map);
+      if (authenticated) {
+        profile(await api.get('auth/me') as Map);
+        await _mergeGuest();
+      }
     } catch (e) {
       await api.clearToken();
       error = e.toString();
+    }
+    if (!authenticated) {
+      try {
+        await _loadGuest();
+      } catch (e) {
+        shopError = e.toString();
+      }
     }
     await refresh();
   }
@@ -417,6 +528,11 @@ class Repo extends ChangeNotifier {
       }
       homeLoaded = true;
       offline = false;
+      try {
+        await _syncCart();
+      } catch (e) {
+        shopError = e.toString();
+      }
     } catch (e) {
       _clearData();
       error = e.toString();
@@ -450,6 +566,7 @@ class Repo extends ChangeNotifier {
     final m = await api.post('auth/verify', {'phone': ph, 'code': code}) as Map;
     await api.saveToken(str(m, 'token'));
     profile(m['user'] as Map);
+    await _mergeGuest();
     await refresh();
     return role;
   }
@@ -727,6 +844,252 @@ class Repo extends ChangeNotifier {
     }
     await loadClosed(day);
   }, reload: false);
+
+  ShopProduct _product(Map m, {bool full = false}) => ShopProduct(
+    id: intVal(m, 'id'),
+    name: str(m, 'name'),
+    price: intVal(m, 'price'),
+    stock: intVal(m, 'stock'),
+    categoryId: intVal(m, 'categoryId'),
+    category: str(m, 'category'),
+    image: str(m, 'imageUrl'),
+    available: m['available'] == true,
+    compareAt: m['compareAtPrice'] == null ? null : intVal(m, 'compareAtPrice'),
+    discount: m['discountPercent'] == null ? null : intVal(m, 'discountPercent'),
+    description: full ? str(m, 'description') : '',
+    specs: full ? str(m, 'specs') : '',
+    images: full ? ((m['images'] as List?) ?? []).map((e) => e.toString()).toList() : [str(m, 'imageUrl')],
+    featured: m['featured'] == true,
+  );
+
+  void _readCart(Map m) {
+    cartLines
+      ..clear()
+      ..addAll(rows(m['items']).map((x) => CartLine(intVal(x, 'id'), intVal(x, 'productId'), str(x, 'name'), str(x, 'imageUrl'), intVal(x, 'qty'), intVal(x, 'unitPrice'), intVal(x, 'lineTotal'), intVal(x, 'stock'), x['priceChanged'] == true, x['available'] == true)));
+    cartSubtotal = intVal(m, 'subtotal');
+    cartDiscount = intVal(m, 'discount');
+    cartWarnings
+      ..clear()
+      ..addAll(((m['warnings'] as List?) ?? []).map((e) => '$e'));
+  }
+
+  ShopOrder _order(Map m) => ShopOrder(
+    intVal(m, 'id'),
+    str(m, 'number'),
+    str(m, 'status'),
+    str(m, 'createdAt'),
+    str(m, 'customerName'),
+    str(m, 'phone'),
+    str(m, 'governorate'),
+    str(m, 'area'),
+    str(m, 'address'),
+    str(m, 'notes'),
+    intVal(m, 'subtotal'),
+    intVal(m, 'discount'),
+    intVal(m, 'deliveryFee'),
+    intVal(m, 'total'),
+    str(m, 'payMethod'),
+    rows(m['items']).map((x) => CartLine(0, intVal(x, 'productId'), str(x, 'name'), '', intVal(x, 'qty'), intVal(x, 'unitPrice'), intVal(x, 'lineTotal'), 0, false, true)).toList(),
+    ((m['history'] as List?) ?? []).map((e) {
+      final x = Map<String, dynamic>.from(e as Map);
+      return (str(x, 'status'), str(x, 'note'), str(x, 'createdAt'));
+    }).toList(),
+  );
+
+  Future<void> _syncCart() async {
+    if (!authenticated) return;
+    _readCart(await api.get('cart') as Map);
+  }
+
+  Future<void> _saveGuest() async {
+    await api.storage.write(key: 'dooja.guestCart', value: jsonEncode(cartLines.map((l) => {'productId': l.productId, 'qty': l.qty}).toList()));
+  }
+
+  Future<void> _loadGuest() async {
+    final raw = await api.storage.read(key: 'dooja.guestCart');
+    cartLines.clear();
+    if (raw == null || raw.isEmpty) return;
+    final saved = (jsonDecode(raw) as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    cartWarnings.clear();
+    var subtotal = 0, discount = 0;
+    for (final item in saved) {
+      try {
+        final product = _product(await api.get('shop/products/${item['productId']}') as Map, full: true);
+        final qty = (item['qty'] as num).toInt();
+        if (qty > product.stock) cartWarnings.add('المتوفر من ${product.name} هو ${product.stock}');
+        final line = product.price * qty;
+        subtotal += line;
+        if (product.compareAt != null && product.compareAt! > product.price) discount += (product.compareAt! - product.price) * qty;
+        cartLines.add(CartLine(0, product.id, product.name, product.image, qty, product.price, line, product.stock, false, product.available));
+      } catch (_) {
+        cartWarnings.add('منتج في السلة لم يعد متاحاً');
+      }
+    }
+    cartSubtotal = subtotal;
+    cartDiscount = discount;
+  }
+
+  Future<void> _mergeGuest() async {
+    final raw = await api.storage.read(key: 'dooja.guestCart');
+    if (raw == null || raw.isEmpty) return;
+    final items = jsonDecode(raw) as List;
+    if (items.isEmpty) return;
+    await api.post('cart/merge', {'items': items});
+    await api.storage.delete(key: 'dooja.guestCart');
+  }
+
+  Future<void> openStore({String q = '', int? categoryId, String sort = 'latest', int? minPrice, int? maxPrice, bool discounted = false, int page = 1}) async {
+    shopLoading = true;
+    shopError = null;
+    touch();
+    try {
+      final settings = await api.get('shop/settings') as Map;
+      shopEnabled = settings['enabled'] == true;
+      shopDeliveryFee = intVal(settings, 'deliveryFee');
+      shopMinOrder = intVal(settings, 'minOrder');
+      payMethods
+        ..clear()
+        ..addAll(rows(settings['paymentMethods']).map((m) => (str(m, 'code'), str(m, 'name'))));
+      deliveryAreas
+        ..clear()
+        ..addAll(rows(settings['areas']).map((m) => ShopArea(intVal(m, 'id'), str(m, 'governorate'), str(m, 'area'), m['fee'] == null ? shopDeliveryFee : intVal(m, 'fee'), m['fee'] != null)));
+      shopCategories
+        ..clear()
+        ..addAll(rows(await api.get('shop/categories')).map((m) => ShopCategory(intVal(m, 'id'), str(m, 'name'), str(m, 'imageUrl'), intVal(m, 'sortOrder'))));
+      final query = [
+        'page=$page',
+        'pageSize=20',
+        if (q.isNotEmpty) 'q=${Uri.encodeQueryComponent(q)}',
+        if (categoryId != null) 'categoryId=$categoryId',
+        'sort=$sort',
+        if (minPrice != null) 'minPrice=$minPrice',
+        if (maxPrice != null) 'maxPrice=$maxPrice',
+        if (discounted) 'discounted=true',
+      ].join('&');
+      final pageBody = await api.get('shop/products?$query') as Map;
+      shopEnabled = pageBody['enabled'] == true;
+      shopPage = intVal(pageBody, 'page');
+      shopTotal = intVal(pageBody, 'total');
+      final batch = rows(pageBody['items']).map(_product).toList();
+      if (page <= 1) shopProducts.clear();
+      shopProducts.addAll(batch);
+      if (authenticated) {
+        await _syncCart();
+      } else {
+        await _loadGuest();
+      }
+    } catch (e) {
+      shopError = e.toString();
+      if (page <= 1) shopProducts.clear();
+    } finally {
+      shopLoading = false;
+      touch();
+    }
+  }
+
+  Future<void> openProduct(int id) async {
+    shopError = null;
+    currentProduct = null;
+    touch();
+    try {
+      currentProduct = _product(await api.get('shop/products/$id') as Map, full: true);
+    } catch (e) {
+      shopError = e.toString();
+    }
+    touch();
+  }
+
+  Future<String?> addToCart(int productId, int qty) async {
+    try {
+      if (!authenticated) {
+        final product = currentProduct?.id == productId ? currentProduct! : _product(await api.get('shop/products/$productId') as Map, full: true);
+        final have = cartLines.where((l) => l.productId == productId).fold(0, (s, l) => s + l.qty);
+        if (have + qty > product.stock) return 'المتوفر من ${product.name} هو ${product.stock} فقط';
+        await _loadGuest();
+        final next = (cartLines.where((l) => l.productId == productId).fold(0, (s, l) => s + l.qty)) + qty;
+        cartLines.removeWhere((l) => l.productId == productId);
+        cartLines.add(CartLine(0, product.id, product.name, product.image, next, product.price, product.price * next, product.stock, false, product.available));
+        cartSubtotal = cartLines.fold(0, (s, l) => s + l.lineTotal);
+        await _saveGuest();
+        touch();
+        return null;
+      }
+      _readCart(await api.post('cart/items', {'productId': productId, 'qty': qty}) as Map);
+      touch();
+      return null;
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  Future<String?> setCartQty(int productId, int qty) async {
+    try {
+      if (!authenticated) {
+        if (qty <= 0) cartLines.removeWhere((l) => l.productId == productId);
+        else {
+          final i = cartLines.indexWhere((l) => l.productId == productId);
+          if (i < 0) return 'المنتج غير موجود في السلة';
+          final line = cartLines[i];
+          if (qty > line.stock) return 'المتوفر ${line.stock} فقط';
+          cartLines[i] = CartLine(0, line.productId, line.name, line.image, qty, line.unitPrice, line.unitPrice * qty, line.stock, line.priceChanged, line.available);
+        }
+        cartSubtotal = cartLines.fold(0, (s, l) => s + l.lineTotal);
+        await _saveGuest();
+        touch();
+        return null;
+      }
+      _readCart(await api.put('cart/items/$productId', {'productId': productId, 'qty': qty}) as Map);
+      touch();
+      return null;
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  Future<void> loadOrders() async {
+    if (!authenticated) {
+      shopOrders.clear();
+      touch();
+      return;
+    }
+    shopOrders
+      ..clear()
+      ..addAll(rows(await api.get('orders')).map(_order));
+    touch();
+  }
+
+  Future<(ShopOrder?, String?)> checkout({required String name, required String phone, required String governorate, required String area, required String address, required String notes, required String payMethod, required String idempotencyKey}) async {
+    try {
+      final data = await api.request('POST', 'orders', {
+        'name': name,
+        'phone': phone,
+        'governorate': governorate,
+        'area': area,
+        'address': address,
+        'notes': notes,
+        'payMethod': payMethod,
+        'idempotencyKey': idempotencyKey,
+      });
+      final order = _order(data as Map);
+      cartLines.clear();
+      await loadOrders();
+      return (order, null);
+    } catch (e) {
+      return (null, e.toString());
+    }
+  }
+
+  Future<String?> cancelOrder(int id) async {
+    try {
+      await api.post('orders/$id/cancel');
+      await loadOrders();
+      await _syncCart();
+      touch();
+      return null;
+    } catch (e) {
+      return e.toString();
+    }
+  }
 }
 
 final repo = Repo.i;

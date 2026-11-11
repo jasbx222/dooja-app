@@ -1,17 +1,16 @@
 # ضوجة · DOOJA — ASP.NET Core 8 MVC + Web API
 
-Arabic RTL administration dashboard and JSON API for [jasbx222/dooja-app](https://github.com/jasbx222/dooja-app). Built locally, without cloning or changing the Flutter repository and without pushing anything to GitHub.
+Arabic RTL administration dashboard and JSON API for [jasbx222/dooja-app](https://github.com/jasbx222/dooja-app). Run these commands from this folder (`dashboard/` inside the app repo, or the root of the dashboard repo).
 
 ## Run
 
-Requires .NET SDK 8 (tested with **8.0.427**).
+Requires .NET SDK 8 (tested with **8.0.427**). The launch profile turns on Development and `Seed__Demo` so local booking samples exist. Production ignores that flag.
 
 ```bash
 export PATH="$HOME/.dotnet:$PATH"
-cd /workspace/dooja-dashboard
 dotnet restore
 dotnet build
-dotnet run --project src/Dooja.Web
+dotnet run --project src/Dooja.Web --urls http://127.0.0.1:5080
 ```
 
 Open **http://localhost:5080**. The launch profile selects Development. Without a launch profile:
@@ -62,6 +61,18 @@ Development imports the reference app's **sample records** once: p1–p12, five 
 All dashboard writes require Admin cookie authentication **and** antiforgery. Mutation actions use POST. Places are hidden instead of destructively deleting related bookings. Lists cap bookings/users/reviews at 300 rows; search/filter narrows these. API list limits are documented in controller source (places has `page`/`pageSize`).
 
 KPI days use **Asia/Baghdad** for this Iraqi business. Income is the total of bookings with recorded arrival or completed status, **not a payment-provider settlement report**. UTC is used for machine timestamps (`createdAt`).
+
+## Store
+
+The shop is database-backed. Production does not import demonstration places: set `Seed__Demo=true` only on a disposable Development database. `Seed:Demo` in `appsettings.json` is false, and a non-Development host ignores the flag. No sample products are inserted. Cash on delivery is the only customer payment method. The dashboard refuses to enable online payment because no payment gateway is implemented. Checkout also rejects an online method unless `Payment__OnlineProvider` is set, which is only a server-side lock and does not charge a card.
+
+Customer API (prices and stock are calculated on the server; client totals are ignored):
+
+- `GET /api/shop/settings` `GET /api/shop/categories` `GET /api/shop/products` `GET /api/shop/products/{id}`
+- `GET /api/cart` `POST /api/cart/items` `PUT /api/cart/items/{productId}` `DELETE /api/cart/items/{productId}` `POST /api/cart/merge`
+- `GET /api/orders` `GET /api/orders/{id}` `POST /api/orders` `POST /api/orders/{id}/cancel`
+
+`POST /api/orders` accepts `idempotencyKey`. Repeating it returns the original order and does not sell the stock twice. Dashboard pages: `/ShopProducts`, `/ShopCategories`, `/ShopOrders`, `/ShopInventory`, `/ShopReports`, `/ShopSettings`. Money is integer Iraqi dinars, the same unit as bookings, so totals are not floating-point.
 
 ## API conventions and examples
 

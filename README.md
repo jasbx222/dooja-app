@@ -11,6 +11,7 @@ Public API/dashboard URL (after tunnel is up on your PC): https://dooja.cloudapp
 
 - **iPhone PWA (Add to Home Screen):** https://dooja.cloudapps.trade/app/
 - MVC dashboard stays at `/` (login `/Auth/Login`); Flutter customer app at `/app/`
+- Shopping (store, cart, orders) uses the same API. Store catalog is empty until an admin adds products. Local sample places load only when `Seed__Demo=true` in Development.
 - iOS / TestFlight steps (Arabic): [`docs/IOS-TESTFLIGHT.ar.md`](docs/IOS-TESTFLIGHT.ar.md)
 
 ```bash

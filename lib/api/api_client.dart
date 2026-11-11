@@ -46,6 +46,7 @@ class ApiClient {
     String method,
     String path, [
     Map<String, dynamic>? body,
+    Map<String, String>? headers,
   ]) async {
     if (baseUrl.isEmpty)
       throw const ApiException('حدد عنوان API_BASE_URL قبل تشغيل التطبيق');
@@ -57,6 +58,7 @@ class ApiClient {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
         if (token != null) 'Authorization': 'Bearer $token',
+        if (headers != null) ...headers,
       });
     if (body != null) req.body = jsonEncode(body);
     http.Response res;
