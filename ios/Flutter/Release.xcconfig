@@ -1,1 +1,3 @@
 #include "Generated.xcconfig"
+// Same production API as the Android release APK. Base64 of API_BASE_URL=https://dooja.cloudapps.trade
+DART_DEFINES=QVBJX0JBU0VfVVJMPWh0dHBzOi8vZG9vamEuY2xvdWRhcHBzLnRyYWRl
