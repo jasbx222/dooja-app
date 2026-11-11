@@ -16,7 +16,8 @@ public static class Seed
             admin.PasswordHash = new PasswordHasher<AppUser>().HashPassword(admin, password); db.Users.Add(admin); await db.SaveChangesAsync();
         }
         if (!env.IsDevelopment() || !config.GetValue("Seed:Demo", false)) return;
-        if (db.Places.Any()) return;
+        if (!db.Places.Any())
+        {
         await using var transaction = await db.Database.BeginTransactionAsync();
         var customer = new AppUser { Phone = "07700000001", Name = "حسين علي", Area = "المنصور", Birth = "12 / 05 / 2001", Points = 1240 };
         var owner = new AppUser { Phone = "07700000002", Name = "أبو علي", Role = "Owner", Area = "المنصور" };
@@ -85,5 +86,7 @@ new Place{Id="p12",ImageKey="gaming",Name="كيدز لاند",Type="أنشطة �
         db.Notifications.Add(new Notification { UserId = owner.Id, Icon = "hourglass", Title = "العرض قرب يخلص", Body = "باقة الأصحاب تنتهي بعد يومين", Fresh = false });
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
+        }
+        await ShopCatalogSeed.Ensure(db);
     }
 }

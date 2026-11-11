@@ -64,7 +64,7 @@ KPI days use **Asia/Baghdad** for this Iraqi business. Income is the total of bo
 
 ## Store
 
-The shop is database-backed. Production does not import demonstration places: set `Seed__Demo=true` only on a disposable Development database. `Seed:Demo` in `appsettings.json` is false, and a non-Development host ignores the flag. No sample products are inserted. Cash on delivery is the only customer payment method. The dashboard refuses to enable online payment because no payment gateway is implemented. Checkout also rejects an online method unless `Payment__OnlineProvider` is set, which is only a server-side lock and does not charge a card.
+The shop is database-backed. Production does not import demonstration places or products: set `Seed__Demo=true` only on a disposable Development database. `Seed:Demo` in `appsettings.json` is false, and a non-Development host ignores the flag. A Development database with that flag receives the gaming catalog once, when it has no products yet: six categories, eighteen products with descriptions, specs, prices, stock, and photos, plus Baghdad delivery areas. Cash on delivery is the only customer payment method. The dashboard refuses to enable online payment because no payment gateway is implemented. Checkout also rejects an online method unless `Payment__OnlineProvider` is set, which is only a server-side lock and does not charge a card.
 
 Customer API (prices and stock are calculated on the server; client totals are ignored):
 
