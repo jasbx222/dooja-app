@@ -1,0 +1,20 @@
+[Unit]
+Description=Dooja ASP.NET Core
+After=network.target
+
+[Service]
+Type=simple
+User=dooja
+Group=dooja
+WorkingDirectory=/var/lib/dooja
+EnvironmentFile=/etc/dooja/dooja.env
+ExecStart=/usr/bin/dotnet /opt/dooja/Dooja.Web.dll
+Restart=always
+RestartSec=5
+KillSignal=SIGINT
+SyslogIdentifier=dooja
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

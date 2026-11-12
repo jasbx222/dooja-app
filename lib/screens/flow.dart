@@ -664,19 +664,12 @@ class BookPay extends Scr {
                 w: 'fill',
               ),
             ], p: 12),
-            if (d.disc > 0)
+            if (d.offer != null && d.disc > 0)
               R(
                 [
                   R([
                     I('ticket-percent', 20, P),
-                    T(
-                      d.offer != null
-                          ? 'عرض: ${d.offer!.disc}'
-                          : 'عرض: خصم 10% للحجز قبل 9',
-                      14,
-                      700,
-                      P,
-                    ),
+                    T('عرض: ${d.offer!.disc}', 14, 700, P),
                   ], g: 8),
                   T('مطبّق', 13, 800, P),
                 ],

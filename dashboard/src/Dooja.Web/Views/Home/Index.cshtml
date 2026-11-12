@@ -1,8 +1,135 @@
 @model DashboardVm
-@{ViewData["Title"]="نظرة عامة"; var max=Math.Max(1,Model.Week.Max(x=>x.Count));}
-<section class="page-heading"><div><div class="eyebrow">أهلاً بيك بلوحة ضوجة ✦</div><h1>كل شي بمكان واحد</h1><p>تابع حجوزاتك، أماكنك، وكل التفاصيل اللي تهمك.</p></div><a class="btn primary" asp-controller="Places" asp-action="Create">＋ إضافة مكان</a></section>
-<section class="welcome-banner"><div><span class="pill light">نخلّي الطلعة أحلى</span><h2>وين نطلع اليوم؟</h2><p>تجارب جديدة، أماكن مميزة، وحجوزات بدون تعقيد.</p><a asp-controller="Bookings" asp-action="Index">شوف كل الحجوزات ←</a></div><div class="banner-art" aria-hidden="true"><span>✦</span><div><img src="/logo/mark_white.svg" alt=""/></div><span>✧</span></div></section>
-<section class="kpi-grid"><article class="kpi"><div><span>حجوزات اليوم</span><i>▦</i></div><strong>@Model.TodayBookings.ToString("N0")</strong><small>عدا الحجوزات الملغية</small></article><article class="kpi"><div><span>إيراد اليوم</span><i class="green">↗</i></div><strong>@Model.TodayIncome.ToString("N0") <em>د.ع</em></strong><small>وصول مسجل أو حجز مكتمل</small></article><article class="kpi"><div><span>الأماكن المسجّلة</span><i class="amber">⌖</i></div><strong>@Model.Places</strong><small>كل الأماكن على المنصة</small></article><article class="kpi"><div><span>المستخدمون</span><i>♧</i></div><strong>@Model.Users</strong><small>زبائن، أصحاب أماكن، وإدارة</small></article></section>
-<section class="split-grid"><article class="panel"><div class="section-head"><h2>نشاط الحجوزات</h2><span class="muted">آخر 7 أيام · بتوقيت بغداد</span></div><div class="chart" aria-label="حجوزات آخر سبعة أيام">@foreach(var d in Model.Week){<div class="chart-col"><strong>@d.Count</strong><div class="bar-track"><div style="height:@(Math.Max(3,(int)(d.Count*100.0/max)))%"></div></div><small dir="ltr">@d.Label</small></div>}</div></article><article class="panel attention"><span class="attention-icon">◷</span><h2>طلبات تنتظر موافقتك</h2><strong>@Model.Pending</strong><p>راجع الطلبات الجديدة حتى تتأكد طلعاتهم.</p><a class="btn soft" href="/Bookings?status=@Uri.EscapeDataString("بانتظار القبول")">مراجعة الطلبات ←</a></article></section>
-<section class="panel"><div class="section-head"><div><h2>آخر الحجوزات</h2><p class="muted">آخر الطلبات المسجلة على المنصة</p></div><a asp-controller="Bookings" asp-action="Index">عرض الكل ←</a></div><partial name="_BookingTable" model="Model.Recent"/></section>
-<section class="panel"><div class="section-head"><h2>الأماكن الأكثر متابعة</h2><a asp-controller="Places" asp-action="Index">كل الأماكن ←</a></div><div class="place-mini-grid">@foreach(var p in Model.Popular){<a href="/Places/Edit/@p.Id" class="place-mini"><div class="place-visual @p.ImageKey"><span>⌖</span><small>@p.Category</small></div><h3>@p.Name</h3><p>@p.Area · @p.Followers.ToString("N0") متابع</p></a>}</div></section>
+@{
+    ViewData["Title"] = "نظرة عامة";
+    var bookMax = Math.Max(1, Model.Week.Max(x => x.Count));
+    var moneyMax = Math.Max(1L, Model.Revenue.Max(x => x.Amount));
+    var statusTotal = Model.Statuses.Sum(x => x.Count);
+    var weekEmpty = Model.Week.All(x => x.Count == 0);
+    var moneyEmpty = Model.Revenue.All(x => x.Amount == 0);
+    string Delta(long n) => n > 0 ? $"+{n:N0} عن أمس" : n < 0 ? $"{n:N0} عن أمس" : "مثل أمس";
+    string DeltaClass(long n) => n > 0 ? "up" : n < 0 ? "down" : "flat";
+}
+<div class="page-bar">
+    <p class="lead">أرقام التشغيل من قاعدة البيانات، بتوقيت بغداد. المقارنة مع أمس تُحسب من نفس الفترة.</p>
+    <a class="btn primary" asp-controller="Places" asp-action="Create">@Ui.Icon("plus") إضافة مكان</a>
+</div>
+
+<section class="stat-board" aria-label="مؤشرات التشغيل">
+    <a class="stat" asp-controller="Bookings" asp-action="Index"><div class="stat-label">@Ui.Icon("layout-grid") <span>إجمالي الحجوزات</span></div><strong class="num">@Model.TotalBookings.ToString("N0")</strong><small>كل الحالات</small></a>
+    <article class="stat"><div class="stat-label">@Ui.Icon("calendar-check") <span>حجوزات اليوم</span></div><strong class="num">@Model.TodayBookings.ToString("N0")</strong><small class="@DeltaClass(Model.TodayBookingDelta)">@Delta(Model.TodayBookingDelta)</small></article>
+    <a class="stat" href="/Bookings?status=@Uri.EscapeDataString("بانتظار القبول")"><div class="stat-label warn">@Ui.Icon("clock") <span>بانتظار القبول</span></div><strong class="num">@Model.Pending.ToString("N0")</strong><small>تحتاج مراجعة</small></a>
+    <a class="stat" href="/Bookings?status=@Uri.EscapeDataString("مؤكد")"><div class="stat-label ok">@Ui.Icon("circle-check") <span>مؤكد</span></div><strong class="num">@Model.Confirmed.ToString("N0")</strong><small>حجوزات مؤكدة</small></a>
+    <a class="stat" href="/Bookings?status=@Uri.EscapeDataString("مكتمل")"><div class="stat-label info">@Ui.Icon("circle-check") <span>مكتمل</span></div><strong class="num">@Model.Completed.ToString("N0")</strong><small>حجوزات مكتملة</small></a>
+    <a class="stat" href="/Bookings?status=@Uri.EscapeDataString("ملغي")"><div class="stat-label bad">@Ui.Icon("circle-x") <span>ملغي</span></div><strong class="num">@Model.Cancelled.ToString("N0")</strong><small>حجوزات ملغية</small></a>
+    <a class="stat" asp-controller="Places" asp-action="Index"><div class="stat-label">@Ui.Icon("store") <span>الأماكن</span></div><strong class="num">@Model.Places.ToString("N0")</strong><small>@Model.ActivePlaces.ToString("N0") ظاهر بالتطبيق</small></a>
+    <a class="stat" asp-controller="Offers" asp-action="Index"><div class="stat-label">@Ui.Icon("badge-percent") <span>العروض الفعّالة</span></div><strong class="num">@Model.ActiveOffers.ToString("N0")</strong><small>من أصل @Model.Offers.ToString("N0")</small></a>
+    <a class="stat" asp-controller="Users" asp-action="Index"><div class="stat-label">@Ui.Icon("users") <span>الزبائن</span></div><strong class="num">@Model.Customers.ToString("N0")</strong><small>من أصل @Model.Users.ToString("N0") حساب</small></a>
+    <article class="stat"><div class="stat-label ok">@Ui.Icon("wallet") <span>إيراد اليوم</span></div><strong class="num">@Model.TodayIncome.ToString("N0") <em>د.ع</em></strong><small class="@DeltaClass(Model.IncomeDelta)">@Delta(Model.IncomeDelta)</small></article>
+</section>
+
+<section class="viz-grid">
+    <article class="panel">
+        <div class="section-head"><h2>نشاط الحجوزات</h2><p>آخر 7 أيام، بدون الملغى</p></div>
+        @if (weekEmpty)
+        {
+            <p class="empty-note">ماكو حجوزات في هذه الفترة.</p>
+        }
+        <div class="bars" aria-label="حجوزات آخر سبعة أيام">
+            @foreach (var d in Model.Week)
+            {
+                <div class="bar-col">
+                    <strong>@d.Count</strong>
+                    <div class="bar-plot"><span style="height:@(d.Count == 0 ? 0 : Math.Max(4, (int)(d.Count * 100.0 / bookMax)))px"></span></div>
+                    <small dir="ltr">@d.Label</small>
+                </div>
+            }
+        </div>
+    </article>
+    <article class="panel">
+        <div class="section-head"><h2>الإيراد</h2><p>وصول مسجّل أو حجز مكتمل</p></div>
+        @if (moneyEmpty)
+        {
+            <p class="empty-note">ماكو إيراد مسجّل في هذه الفترة.</p>
+        }
+        <div class="bars" aria-label="إيراد آخر سبعة أيام">
+            @foreach (var d in Model.Revenue)
+            {
+                <div class="bar-col">
+                    <strong>@d.Amount.ToString("N0")</strong>
+                    <div class="bar-plot"><span class="money" style="height:@(d.Amount == 0 ? 0 : Math.Max(4, (int)(d.Amount * 100.0 / moneyMax)))px"></span></div>
+                    <small dir="ltr">@d.Label</small>
+                </div>
+            }
+        </div>
+    </article>
+    <article class="panel">
+        <div class="section-head"><h2>توزيع الحالات</h2><p>كل الحجوزات</p></div>
+        @if (statusTotal == 0)
+        {
+            <p class="empty-note">بعد ماكو حجوزات.</p>
+        }
+        <div class="meters">
+            @foreach (var s in Model.Statuses)
+            {
+                var width = statusTotal == 0 ? 0 : (int)Math.Round(s.Count * 100.0 / statusTotal);
+                <div class="meter">
+                    <div><span>@s.Status</span><strong>@s.Count.ToString("N0")</strong></div>
+                    <div class="meter-track"><span class="@s.Tone" style="width:@width%"></span></div>
+                </div>
+            }
+        </div>
+    </article>
+</section>
+
+<section class="panel block">
+    <div class="section-head"><div><h2>آخر الحجوزات</h2><p>أحدث السجلات</p></div><a asp-controller="Bookings" asp-action="Index">عرض الكل</a></div>
+    <partial name="_BookingTable" model="Model.Recent"/>
+</section>
+
+<section class="split">
+    <article class="panel">
+        <div class="section-head"><h2>آخر النشاط</h2><p>حجوزات وتقييمات مسجّلة</p></div>
+        @if (Model.Activity.Count == 0)
+        {
+            <p class="empty-note">ماكو نشاط بعد.</p>
+        }
+        else
+        {
+            <ul class="feed">
+                @foreach (var item in Model.Activity)
+                {
+                    <li>
+                        <a href="@item.Href">
+                            @Ui.Icon(item.Icon)
+                            <span><strong>@item.Title</strong><small>@item.Detail</small><small dir="ltr">@item.When</small></span>
+                        </a>
+                    </li>
+                }
+            </ul>
+        }
+    </article>
+    <article class="panel">
+    <div class="section-head"><h2>الأماكن الأكثر متابعة</h2><a asp-controller="Places" asp-action="Index">كل الأماكن</a></div>
+    @if (Model.Popular.Count == 0)
+    {
+        <p class="empty-note">ماكو أماكن مسجّلة.</p>
+    }
+    else
+    {
+        <ol class="rank">
+            @for (var i = 0; i < Model.Popular.Count; i++)
+            {
+                var p = Model.Popular[i];
+                <li>
+                    <a href="/Places/Edit/@p.Id">
+                        <span class="rank-no">@(i + 1)</span>
+                        <span class="thumb place-visual @p.ImageKey" aria-hidden="true"></span>
+                        <span><strong>@p.Name</strong><small>@p.Area · @p.Category</small></span>
+                        <span class="rank-meta">@p.Followers.ToString("N0") <small>متابع</small></span>
+                    </a>
+                </li>
+            }
+        </ol>
+    }
+    </article>
+</section>

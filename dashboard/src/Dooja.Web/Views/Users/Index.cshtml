@@ -1,3 +1,35 @@
-@model List<AppUser>
-@{ViewData["Title"]="المستخدمون";}
-<div class="page-heading"><div><div class="eyebrow">ناس ضوجة</div><h1>المستخدمون</h1><p>حسابات الزبائن وأصحاب الأماكن.</p></div><a class="btn primary" asp-action="Create">＋ إضافة مستخدم</a></div><form class="toolbar" method="get"><input name="q" value="@ViewBag.Q" placeholder="ابحث بالاسم أو رقم الهاتف"/><button class="btn soft">بحث</button></form><section class="panel table-wrap"><table><thead><tr><th>المستخدم</th><th>رقم الهاتف</th><th>الدور</th><th>المنطقة</th><th>النقاط</th><th>الحالة</th><th></th></tr></thead><tbody>@foreach(var u in Model){<tr><td><div class="user-cell"><div class="avatar">@(u.Name.Length>0?u.Name[..1]:"ض")</div><strong>@u.Name</strong></div></td><td dir="ltr">@u.Phone</td><td>@(u.Role=="Owner"?"صاحب مكان":u.Role=="Admin"?"مدير":"زبون")</td><td>@u.Governorate · @u.Area</td><td>@u.Points.ToString("N0")</td><td><span class="status @(u.Active?"ok":"bad")">@(u.Active?"فعّال":"موقوف")</span></td><td>@if(u.Role!="Admin"){<a asp-action="Edit" asp-route-id="@u.Id">تعديل ←</a>}</td></tr>}@if(Model.Count==0){<tr><td class="empty" colspan="7">ماكو نتائج</td></tr>}</tbody></table></section>
+@model PagedList<AppUser>
+@{
+    ViewData["Title"] = "المستخدمون";
+    ViewData["Search"] = "ابحث بالاسم أو رقم الهاتف";
+}
+<div class="page-bar">
+    <p class="lead">@Model.Page.Total.ToString("N0") حساب ضمن النتائج. حساب المدير محمي من التعديل.</p>
+    <a class="btn primary" asp-action="Create">@Ui.Icon("plus") إضافة مستخدم</a>
+</div>
+<section class="panel table-panel">
+    <div class="table-wrap">
+        <table class="stack">
+            <thead><tr><th>المستخدم</th><th>رقم الهاتف</th><th>الدور</th><th>المنطقة</th><th>النقاط</th><th>الحالة</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var u in Model.Items)
+            {
+                <tr>
+                    <td data-label="المستخدم"><div class="user-cell"><span class="avatar">@Ui.Initial(u.Name)</span><strong>@u.Name</strong></div></td>
+                    <td data-label="رقم الهاتف" dir="ltr">@u.Phone</td>
+                    <td data-label="الدور">@Ui.RoleLabel(u.Role)</td>
+                    <td data-label="المنطقة">@u.Governorate · @u.Area</td>
+                    <td data-label="النقاط">@u.Points.ToString("N0")</td>
+                    <td data-label="الحالة"><span class="status @(u.Active ? "ok" : "bad")">@(u.Active ? "فعّال" : "موقوف")</span></td>
+                    <td data-label="إجراء">@if (u.Role != "Admin") { <a class="btn ghost compact" asp-action="Edit" asp-route-id="@u.Id">@Ui.Icon("pencil") تعديل</a> }</td>
+                </tr>
+            }
+            @if (Model.Items.Count == 0)
+            {
+                <tr><td class="empty" colspan="7">ماكو نتائج. جرّب اسماً أو رقماً آخر.</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    <partial name="_Pager" model="Model.Page"/>
+</section>

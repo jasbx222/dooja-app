@@ -1,3 +1,26 @@
 @model LoginVm
-@{ViewData["Title"]="تسجيل الدخول";}
-<main class="login-shell"><section class="login-story"><a class="brand" href="/"><img class="brand-mark" src="/logo/mark_white.svg" alt=""/>ضوجة<span>DOOJA</span></a><span class="pill light">لوحة إدارة ضوجة</span><h1>كل طلعة حلوة،<br/>تبدأ من هنا.</h1><p>إدارة الأماكن والحجوزات والعروض،<br/>بنفس روح التطبيق اللي تحبّه.</p><div class="login-orb"><img src="/logo/mark_white.svg" alt=""/></div><small>نغيّر جوّك ✦</small></section><section class="login-form"><div class="eyebrow">أهلاً برجعتك</div><h2>سجّل دخولك</h2><p class="muted">استخدم حساب الإدارة حتى تكمل.</p><form asp-action="Login" method="post"><div asp-validation-summary="All" class="validation"></div><label asp-for="Phone">رقم الهاتف</label><input asp-for="Phone" dir="ltr" inputmode="tel" autocomplete="username" placeholder="07xxxxxxxxx"/><label asp-for="Password">كلمة المرور</label><input asp-for="Password" dir="ltr" autocomplete="current-password"/><button class="btn primary wide" type="submit">تسجيل الدخول ←</button></form><p class="login-foot">دخول آمن للإدارة فقط · ضوجة</p></section></main>
+@{ ViewData["Title"] = "تسجيل الدخول"; }
+<main class="login-shell">
+    <section class="login-story">
+        <a class="brand" href="/">
+            <img src="/logo/mark_white.svg" alt=""/>
+            <span>ضوجة<small>DOOJA</small></span>
+        </a>
+        <div class="story-copy">
+            <h1>كل طلعة حلوة تبدأ من هنا.</h1>
+            <p>إدارة الأماكن والحجوزات والعروض من نفس بيانات التطبيق.</p>
+        </div>
+        <small>نغيّر جوّك</small>
+    </section>
+    <section class="login-form">
+        <p class="kicker">لوحة الإدارة</p>
+        <h2>سجّل دخولك</h2>
+        <p class="lead">حساب الإدارة فقط.</p>
+        <form asp-action="Login" method="post">
+            <div asp-validation-summary="All" class="validation"></div>
+            <div class="field"><label asp-for="Phone">رقم الهاتف</label><input asp-for="Phone" dir="ltr" inputmode="tel" autocomplete="username" placeholder="07xxxxxxxxx"/></div>
+            <div class="field"><label asp-for="Password">كلمة المرور</label><input asp-for="Password" dir="ltr" autocomplete="current-password"/></div>
+            <button class="btn primary wide" type="submit">تسجيل الدخول</button>
+        </form>
+    </section>
+</main>

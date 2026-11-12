@@ -1,0 +1,35 @@
+@model OpsAlertsVm
+<details class="menu">
+    <summary class="icon-btn" aria-label="طلبات بانتظار القبول">
+        @Ui.Icon("bell")
+        @if (Model.Count > 0)
+        {
+            <em class="badge">@(Model.Count > 99 ? "99+" : Model.Count.ToString())</em>
+        }
+    </summary>
+    <div class="menu-panel alerts">
+        <div class="menu-head"><strong>بانتظار القبول</strong><span class="muted">@Model.Count.ToString("N0")</span></div>
+        @if (Model.Items.Count == 0)
+        {
+            <p class="menu-empty">ماكو طلبات بانتظار القبول.</p>
+        }
+        else
+        {
+            <ul>
+                @foreach (var b in Model.Items)
+                {
+                    <li>
+                        <a href="/Bookings?q=@Uri.EscapeDataString(b.Code)">
+                            <strong dir="ltr">@b.Code</strong>
+                            <small>@b.Place?.Name · @b.User?.Name</small>
+                        </a>
+                    </li>
+                }
+            </ul>
+            @if (Model.Count > Model.Items.Count)
+            {
+                <a class="menu-more" href="/Bookings?status=@Uri.EscapeDataString("بانتظار القبول")">عرض كل الطلبات</a>
+            }
+        }
+    </div>
+</details>

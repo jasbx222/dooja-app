@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:dooja/app.dart';
 import 'package:dooja/dsl.dart';
 import 'package:dooja/repo.dart';
+import 'package:dooja/screens/auth.dart';
 import 'package:dooja/screens/home.dart';
 import 'package:dooja/screens/more.dart';
 import 'package:dooja/screens/owner.dart';
@@ -26,6 +27,7 @@ void main() {
     onCustomerTab = (_, __) {};
     onOwnerTab = (_, __) {};
     for (final widget in <Widget>[
+      const CreateAccount(),
       const Home(),
       const Search(),
       const Category('بادل'),
@@ -61,6 +63,12 @@ void main() {
         isNull,
         reason: widget.runtimeType.toString(),
       );
+      if (widget is Reels) {
+        expect(find.text('الريلز قريباً'), findsOneWidget);
+      }
+      if (widget is CreateAccount) {
+        expect(find.text('أنشئ حسابك'), findsOneWidget);
+      }
       await tester.pumpWidget(const SizedBox());
     }
   });

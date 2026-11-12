@@ -569,238 +569,29 @@ class OfferDetail extends Scr {
 }
 
 class Reels extends Scr {
-  final int start;
-  const Reels({super.key, this.start = 0});
+  const Reels({super.key});
   @override
-  Widget view(c, s) {
-    final pc = s.get('pc', PageController(initialPage: start));
-    final tab = s.get('tab', 1);
-    final list = tab == 0
-        ? repo.reels.where((r) => repo.follows.contains(r.placeId)).toList()
-        : repo.reels;
-    final hh = MediaQuery.of(c).size.height;
-    Widget page(Reel r) {
-      final side = F(
-        [
-          for (final (i, n, f, tp) in [
-            (
-              'heart',
-              kfmt(r.likes),
-              r.liked ? '#E5484D' : null,
-              () => repo.likeReel(r),
-            ),
-            (
-              'message-circle',
-              '${r.comments.length}',
-              null,
-              () => commentsSheet(c, r),
-            ),
-            (
-              'bookmark',
-              'حفظ',
-              r.saved ? WH : null,
-              () => toast(c, 'حفظ الريلز غير مدعوم في الخادم حالياً'),
-            ),
-            ('share-2', 'مشاركة', null, () => toast(c, 'نسخنا رابط الريل')),
-          ])
-            F(
-              [I(i, 28, WH, f), Tn(n, s: 12, w: 700, c: WH, al: 'CENTER')],
-              g: 4,
-              al: 'c',
-              tap: tp,
-            ),
-        ],
-        g: 20,
-        al: 'c',
-      );
-      final follow = repo.follows.contains(r.placeId);
-      final info = F([
-        R(
-          [
-            F(
-              [Tn(r.place.characters.first, s: 14, w: 800, c: P, al: 'CENTER')],
-              al: 'c',
-              jc: 'c',
-              w: 38,
-              h: 38,
-              r: 19,
-              bg: WH,
-            ),
-            T(r.place, 15, 800, WH),
-            R(
-              [T(follow ? 'متابَع' : 'متابعة', 12, 800, WH)],
-              g: 4,
-              r: 10,
-              p: [5, 10],
-              sk: WH,
-              tap: () => repo.toggleFollow(r.placeId),
-            ),
-          ],
-          g: 8,
-          al: 'c',
-          tap: () => push(c, Details(r.placeId)),
+  Widget view(c, s) => screen(c, [
+    topbar('ريلز ضوجة'),
+    F(
+      [
+        BOX(h: 48, w: 1),
+        F([I('video', 44, P)], al: 'c', jc: 'c', w: 110, h: 110, r: 32, bg: PL),
+        Tn('الريلز قريباً', s: 22, w: 800, al: 'CENTER'),
+        Tn(
+          'رح تقدر تشوف فيديوهات الأماكن، تتابعهن، وتحجز مباشرة من الريل. الميزة تجهز حالياً وما تعرض محتوى تجريبي.',
+          s: 14,
+          c: MU,
+          al: 'CENTER',
+          w2: 300,
+          lh: 22,
         ),
-        Tn(r.caption, s: 14, c: WH, w2: 290, lh: 21),
-        R([
-          R(
-            [I('ticket-percent', 16, WH), T(r.offer, 13, 700, WH)],
-            g: 6,
-            p: [8, 12],
-            r: 12,
-            bg: '#FFFFFF33',
-          ),
-        ], g: 8),
-        btn(
-          'احجز هالنشاط',
-          icon: 'calendar-check',
-          w: 300,
-          h: 46,
-          tap: () => push(c, BookSlot(r.placeId)),
-        ),
-      ], g: 12);
-      return Stack(
-        children: [
-          Positioned.fill(
-            child: Image.asset('assets/img/${r.img}.jpg', fit: BoxFit.cover),
-          ),
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [col('#11111100'), col('#111111CC')],
-                ),
-              ),
-            ),
-          ),
-          Positioned(left: 334, top: 380 * hh / 844, child: side),
-          Positioned(left: 20, top: 560 * hh / 844, child: info),
-        ],
-      );
-    }
-
-    return Scaffold(
-      backgroundColor: col(INK),
-      body: Stack(
-        children: [
-          if (list.isEmpty)
-            Center(
-              child: Tn('تابع أماكن حتى تشوف ريلزهم هنا', s: 15, w: 700, c: WH),
-            )
-          else
-            PageView(
-              controller: pc,
-              scrollDirection: Axis.vertical,
-              children: [for (final r in list) page(r)],
-            ),
-          Column(
-            children: [
-              status(true),
-              R(
-                [
-                  R([
-                    if (Navigator.of(c).canPop())
-                      F([
-                        I('arrow-right', 22, WH),
-                      ], tap: () => Navigator.pop(c)),
-                    T('ريلز ضوجة', 18, 800, WH),
-                  ], g: 10),
-                  R([
-                    F([
-                      T(
-                        'متابَعين',
-                        14,
-                        tab == 0 ? 800 : 500,
-                        tab == 0 ? WH : '#FFFFFFAA',
-                      ),
-                    ], tap: () => s.set('tab', 0)),
-                    F([
-                      T(
-                        'لك',
-                        14,
-                        tab == 1 ? 800 : 500,
-                        tab == 1 ? WH : '#FFFFFFAA',
-                      ),
-                    ], tap: () => s.set('tab', 1)),
-                  ], g: 14),
-                ],
-                jc: 'sb',
-                w: 'fill',
-                p: [8, 20],
-              ),
-            ],
-          ),
-          Positioned(left: 0, bottom: 0, child: navbar(c, 'الرئيسية')),
-        ],
-      ),
-    );
-  }
-}
-
-Future<void> commentsSheet(BuildContext c, Reel r) {
-  final ctl = TextEditingController();
-  Widget cm((String, String, String, int) x) => R(
-    [
-      avatar(x.$1, 34, 13),
-      F([
-        R([T(x.$1, 13, 700), T(x.$3, 11, 400, MU)], g: 6),
-        Tn(x.$2, s: 14, w2: 250, lh: 21),
-        T('رد', 12, 700, MU),
-      ], g: 4),
-      F([I('heart', 16, MU), T('${x.$4}', 11, 400, MU)], al: 'c', g: 2),
-    ],
-    g: 10,
-    al: 's',
-    w: 'fill',
-    jc: 'sb',
-  );
-  final extra = 0;
-  return openSheet(
-    c,
-    title: 'التعليقات (${r.comments.length + extra})',
-    top: 380,
-    body: (sc, set) => [
-      Flexible(
-        child: SingleChildScrollView(
-          child: F([for (final x in r.comments) cm(x)], g: 16, w: 'fill'),
-        ),
-      ),
-      R(
-        [
-          R(
-            [N(field(ctl, 'اكتب تعليق...', 14), fillW: true)],
-            g: 8,
-            bg: G,
-            r: 22,
-            h: 46,
-            w: 'fill',
-            p: [0, 16],
-          ),
-          F(
-            [I('send', 20, WH)],
-            al: 'c',
-            jc: 'c',
-            w: 46,
-            h: 46,
-            r: 23,
-            bg: P,
-            tap: () async {
-              if (ctl.text.trim().isEmpty) return;
-              if (await apiAction(c, repo.comment(r, ctl.text.trim())) &&
-                  sc.mounted) {
-                set(() {});
-                ctl.clear();
-              }
-            },
-          ),
-        ],
-        g: 10,
-        w: 'fill',
-        al: 'c',
-      ),
-    ],
-  );
+      ],
+      g: 16,
+      al: 'c',
+      w: 'fill',
+    ),
+  ], nav: 'الرئيسية');
 }
 
 class Favs extends Scr {
@@ -815,7 +606,6 @@ class Favs extends Scr {
     final follows = repo.places
         .where((p) => repo.follows.contains(p.id))
         .toList();
-    final saved = repo.reels.where((r) => r.saved).toList();
     Widget follow(Place p, String? nw) => R(
       [
         R(
@@ -904,40 +694,11 @@ class Favs extends Scr {
               )
             : F(followsW, g: 12, w: 'fill', p: [8, 20]),
       if (t == 2)
-        saved.isEmpty
-            ? empty(
-                'bookmark',
-                'ما حفظت ريلز',
-                'اضغط حفظ على أي ريل حتى تلگاه هنا',
-              )
-            : F(
-                [
-                  R(
-                    [
-                      for (final r in saved)
-                        img(
-                          r.img,
-                          108,
-                          180,
-                          16,
-                          [T(r.place, 12, 800, WH)],
-                          'v',
-                          10,
-                          's',
-                          'e',
-                          0,
-                          null,
-                          () => push(c, Reels(start: repo.reels.indexOf(r))),
-                        ),
-                    ],
-                    g: 9,
-                    wrap: true,
-                    w: 'fill',
-                  ),
-                ],
-                w: 'fill',
-                p: [8, 20],
-              ),
+        empty(
+          'video',
+          'الريلز قريباً',
+          'حفظ الريلز ومشاهدتها يجهز للزبائن. ماكو محتوى تجريبي بهالقسم.',
+        ),
     ], nav: 'المفضلة');
   }
 }

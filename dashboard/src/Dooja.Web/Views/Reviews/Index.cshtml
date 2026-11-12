@@ -1,3 +1,43 @@
-@model List<Review>
-@{ViewData["Title"]="التقييمات";}
-<div class="page-heading"><div><div class="eyebrow">نسمع رأيهم</div><h1>التقييمات</h1><p>راجع تجارب الزبائن ورد على تقييماتهم.</p></div><span class="pill">@Model.Count تقييم</span></div><div class="reviews-grid">@foreach(var r in Model){<article class="panel review-card"><div class="section-head"><div class="user-cell"><div class="avatar">@(r.Name.Length>0?r.Name[..1]:"ض")</div><div><h3>@r.Name</h3><small class="muted">@r.Place?.Name · @r.Ago</small></div></div><span class="rating">@(new string('★',r.Stars))</span></div><p class="review-text">@r.Text</p>@if(r.HasPhotos){<small class="muted">التقييم الأصلي يذكر صوراً — الملفات غير مستوردة</small>}@if(!string.IsNullOrWhiteSpace(r.Reply)){<blockquote><strong>رد المكان</strong><p>@r.Reply</p></blockquote>}<form asp-action="Reply" method="post"><input type="hidden" name="id" value="@r.Id"/><label for="reply-@r.Id">@(r.Reply==null?"ردّك على التقييم":"تعديل الرد")</label><textarea id="reply-@r.Id" name="text" maxlength="2000" required rows="2" placeholder="اكتب ردّك هنا...">@r.Reply</textarea><button class="btn soft compact">حفظ الرد ←</button></form></article>}</div>@if(Model.Count==0){<div class="panel empty">بعد ماكو تقييمات</div>}
+@model PagedList<Review>
+@{
+    ViewData["Title"] = "التقييمات";
+    ViewData["Search"] = "ابحث باسم الزبون أو المكان أو نص التقييم";
+    var average = ViewData["Average"] as double?;
+}
+<div class="page-bar">
+    <p class="lead">
+        @Model.Page.Total.ToString("N0") تقييم ضمن النتائج
+        @if (average is double avg) { <span> · المتوسط @avg.ToString("0.0") من 5</span> }
+    </p>
+</div>
+<section class="panel reviews">
+    @if (Model.Items.Count == 0)
+    {
+        <p class="empty-note">ماكو تقييمات مطابقة.</p>
+    }
+    @foreach (var r in Model.Items)
+    {
+        <article class="review">
+            <header>
+                <div class="user-cell"><span class="avatar">@Ui.Initial(r.Name)</span><div><h2>@r.Name</h2><small>@r.Place?.Name · @r.Ago</small></div></div>
+                <span class="rating" aria-label="@r.Stars من 5">@(new string('★', r.Stars))<span class="muted">@(new string('☆', Math.Max(0, 5 - r.Stars)))</span></span>
+            </header>
+            <p>@r.Text</p>
+            @if (r.HasPhotos)
+            {
+                <small class="muted">التقييم الأصلي يذكر صوراً، والملفات غير مستوردة.</small>
+            }
+            @if (!string.IsNullOrWhiteSpace(r.Reply))
+            {
+                <blockquote><strong>رد المكان</strong><p>@r.Reply</p></blockquote>
+            }
+            <form asp-action="Reply" method="post">
+                <input type="hidden" name="id" value="@r.Id"/>
+                <label for="reply-@r.Id">@(r.Reply == null ? "الرد على التقييم" : "تعديل الرد")</label>
+                <textarea id="reply-@r.Id" name="text" maxlength="2000" required rows="3" placeholder="اكتب الرد هنا">@r.Reply</textarea>
+                <button class="btn soft" type="submit">حفظ الرد</button>
+            </form>
+        </article>
+    }
+    <partial name="_Pager" model="Model.Page"/>
+</section>

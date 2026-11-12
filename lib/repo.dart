@@ -338,30 +338,6 @@ class Repo extends ChangeNotifier {
       _clearData();
       places.addAll(all);
       offers.addAll(rows(await api.get('offers')).map(parseOffer));
-      final rs = rows(await api.get('reels'));
-      for (final m in rs) {
-        final comments = rows(await api.get('reels/${m['id']}/comments'));
-        reels.add(
-          Reel(
-            str(m, 'imageKey'),
-            str(m, 'placeId'),
-            str(m['place'] as Map? ?? {}, 'name'),
-            str(m, 'caption'),
-            str(m, 'offerText'),
-            intVal(m, 'likes'),
-            comments
-                .map(
-                  (x) => (
-                    str(x, 'name'),
-                    str(x, 'text'),
-                    str(x, 'createdAt'),
-                    intVal(x, 'likes'),
-                  ),
-                )
-                .toList(),
-          )..id = intVal(m, 'id'),
-        );
-      }
       if (authenticated) {
         profile(await api.get('auth/me') as Map);
         final bookingRows = rows(await api.get('bookings'));

@@ -1,4 +1,40 @@
-@model List<Place>
-@{ViewData["Title"]="الأماكن";}
-<div class="page-heading"><div><div class="eyebrow">أماكن تغيّر الجو</div><h1>الأماكن</h1><p>@Model.Count مكان ضمن نتائج البحث</p></div><a asp-action="Create" class="btn primary">＋ إضافة مكان</a></div><form method="get" class="toolbar"><input name="q" value="@ViewBag.Q" placeholder="ابحث باسم المكان أو المنطقة..."/><button class="btn soft">بحث</button></form>
-<div class="places-grid">@foreach(var p in Model){<article class="place-card"><div class="place-visual @p.ImageKey"><span>⌖</span><small>@p.Category</small>@if(p.Featured){<b>✦ مميز</b>}</div><div class="place-body"><div class="section-head"><h2>@p.Name</h2><span class="rating">★ @p.Rating</span></div><p>@p.Area · @p.Type</p><div class="place-info"><strong>@p.Price.ToString("N0") <small>د.ع / @p.Unit</small></strong><span class="status @(p.Active?"ok":"bad")">@(p.Active?"فعّال":"مخفي")</span></div><div class="card-foot"><small>المالك: @p.OwnerUser?.Name</small><a asp-action="Edit" asp-route-id="@p.Id">تعديل ←</a></div></div></article>}</div>@if(Model.Count==0){<div class="panel empty">ماكو أماكن مطابقة. أضف مكاناً أو غيّر البحث.</div>}
+@model PagedList<Place>
+@{
+    ViewData["Title"] = "الأماكن";
+    ViewData["Search"] = "ابحث باسم المكان أو المنطقة أو التصنيف";
+}
+<div class="page-bar">
+    <p class="lead">@Model.Page.Total.ToString("N0") مكان ضمن النتائج.</p>
+    <a class="btn primary" asp-action="Create">@Ui.Icon("plus") إضافة مكان</a>
+</div>
+<section class="panel table-panel">
+    <div class="table-wrap">
+        <table class="stack">
+            <thead><tr><th>المكان</th><th>التصنيف</th><th>المنطقة</th><th>السعر</th><th>المالك</th><th>الحالة</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var p in Model.Items)
+            {
+                <tr>
+                    <td data-label="المكان">
+                        <div class="place-cell">
+                            <span class="thumb place-visual @p.ImageKey" aria-hidden="true"></span>
+                            <span><strong>@p.Name</strong><small>@p.Type@if (p.Featured) { <span> · مميز</span> }</small></span>
+                        </div>
+                    </td>
+                    <td data-label="التصنيف">@p.Category</td>
+                    <td data-label="المنطقة">@p.Area</td>
+                    <td data-label="السعر"><strong class="price">@p.Price.ToString("N0")</strong><small>د.ع / @p.Unit</small></td>
+                    <td data-label="المالك">@p.OwnerUser?.Name</td>
+                    <td data-label="الحالة"><span class="status @(p.Active ? "ok" : "bad")">@(p.Active ? "ظاهر" : "مخفي")</span><small class="rating">★ @p.Rating.ToString("0.0")</small></td>
+                    <td data-label="إجراء"><a class="btn ghost compact" asp-action="Edit" asp-route-id="@p.Id">@Ui.Icon("pencil") تعديل</a></td>
+                </tr>
+            }
+            @if (Model.Items.Count == 0)
+            {
+                <tr><td colspan="7" class="empty">ماكو أماكن مطابقة. أضف مكاناً أو غيّر البحث.</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    <partial name="_Pager" model="Model.Page"/>
+</section>

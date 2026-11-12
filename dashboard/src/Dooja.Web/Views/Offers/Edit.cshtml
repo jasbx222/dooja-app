@@ -1,3 +1,29 @@
 @model Offer
-@{ViewData["Title"]="تفاصيل العرض";}
-<div class="page-heading"><div><h1>تفاصيل العرض</h1><p>عروض واضحة للزبائن، قابلة للتحديث بأي وقت.</p></div><a asp-action="Index" class="btn ghost">رجوع</a></div><form asp-action="Save" method="post" class="panel edit-form"><input asp-for="Id" type="hidden"/><div asp-validation-summary="All" class="validation"></div><div class="form-grid"><div><label asp-for="PlaceId">المكان</label><select asp-for="PlaceId" asp-items="ViewBag.Places"></select></div><div><label asp-for="Title">عنوان العرض</label><input asp-for="Title"/></div><div><label asp-for="Disc">وصف الخصم</label><input asp-for="Disc"/></div><div><label asp-for="ExpiryText">نص نهاية العرض</label><input asp-for="ExpiryText"/></div><div><label asp-for="NewPrice">السعر الجديد د.ع</label><input asp-for="NewPrice" min="0"/></div><div><label asp-for="OldPrice">السعر السابق د.ع</label><input asp-for="OldPrice" min="0"/></div><div><label asp-for="ExpiresOn">تاريخ الانتهاء (اختياري)</label><input asp-for="ExpiresOn" type="date"/></div><div class="check-group"><label><input asp-for="Active"/> العرض فعّال</label></div></div><div class="form-actions"><button class="btn primary">حفظ العرض</button><a asp-action="Index" class="btn ghost">إلغاء</a></div></form>
+@{ ViewData["Title"] = string.IsNullOrEmpty(Model.Title) ? "عرض جديد" : "تعديل العرض"; }
+<div class="page-bar">
+    <p class="lead">السعر الجديد لازم ما يتجاوز السعر السابق. صورة العرض تُؤخذ من المكان.</p>
+    <a asp-action="Index" class="btn ghost">رجوع</a>
+</div>
+<form asp-action="Save" method="post" class="panel edit-form">
+    <input asp-for="Id" type="hidden"/>
+    <div asp-validation-summary="All" class="validation"></div>
+    <fieldset>
+        <legend>العرض</legend>
+        <div class="form-grid">
+            <div class="field"><label asp-for="PlaceId">المكان</label><select asp-for="PlaceId" asp-items="ViewBag.Places"></select><span asp-validation-for="PlaceId"></span></div>
+            <div class="field"><label asp-for="Title">عنوان العرض</label><input asp-for="Title"/><span asp-validation-for="Title"></span></div>
+            <div class="field form-span"><label asp-for="Disc">وصف الخصم</label><input asp-for="Disc"/></div>
+        </div>
+    </fieldset>
+    <fieldset>
+        <legend>السعر والمدة</legend>
+        <div class="form-grid">
+            <div class="field"><label asp-for="NewPrice">السعر الجديد د.ع</label><input asp-for="NewPrice" min="0"/><span asp-validation-for="NewPrice"></span></div>
+            <div class="field"><label asp-for="OldPrice">السعر السابق د.ع</label><input asp-for="OldPrice" min="0"/><span asp-validation-for="OldPrice"></span></div>
+            <div class="field"><label asp-for="ExpiryText">نص نهاية العرض</label><input asp-for="ExpiryText"/></div>
+            <div class="field"><label asp-for="ExpiresOn">تاريخ الانتهاء (اختياري)</label><input asp-for="ExpiresOn" type="date"/></div>
+            <div class="check-group"><label><input asp-for="Active"/> العرض فعّال</label></div>
+        </div>
+    </fieldset>
+    <div class="form-actions"><button class="btn primary" type="submit">حفظ العرض</button><a asp-action="Index" class="btn ghost">إلغاء</a></div>
+</form>

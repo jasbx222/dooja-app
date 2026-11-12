@@ -1,2 +1,22 @@
 @model IEnumerable<Booking>
-<div class="table-wrap"><table><thead><tr><th>رمز الحجز</th><th>المكان / الزبون</th><th>الموعد</th><th>المبلغ</th><th>الحالة</th></tr></thead><tbody>@foreach(var b in Model){<tr><td><strong dir="ltr">@b.Code</strong></td><td><strong>@b.Place?.Name</strong><small>@b.User?.Name</small></td><td>@b.Day.ToString("yyyy-MM-dd")<small>@b.Time · @b.Duration</small></td><td>@b.Total.ToString("N0") د.ع<small>@b.PayMethod</small></td><td><span class="status @(b.Status=="مؤكد"||b.Status=="مكتمل"?"ok":b.Status=="ملغي"?"bad":"pending")">@b.Status</span></td></tr>}@if(!Model.Any()){<tr><td colspan="5" class="empty">بعد ماكو حجوزات</td></tr>}</tbody></table></div>
+<div class="table-wrap">
+    <table class="stack">
+        <thead><tr><th>رمز الحجز</th><th>المكان / الزبون</th><th>الموعد</th><th>المبلغ</th><th>الحالة</th></tr></thead>
+        <tbody>
+        @foreach (var b in Model)
+        {
+            <tr>
+                <td data-label="رمز الحجز"><a dir="ltr" href="/Bookings?q=@Uri.EscapeDataString(b.Code)"><strong>@b.Code</strong></a></td>
+                <td data-label="المكان / الزبون"><strong>@b.Place?.Name</strong><small>@b.User?.Name</small></td>
+                <td data-label="الموعد">@b.Day.ToString("yyyy-MM-dd")<small>@b.Time · @b.Duration</small></td>
+                <td data-label="المبلغ">@b.Total.ToString("N0") د.ع<small>@b.PayMethod</small></td>
+                <td data-label="الحالة"><span class="status @Ui.StatusClass(b.Status)">@b.Status</span></td>
+            </tr>
+        }
+        @if (!Model.Any())
+        {
+            <tr><td colspan="5" class="empty">بعد ماكو حجوزات</td></tr>
+        }
+        </tbody>
+    </table>
+</div>

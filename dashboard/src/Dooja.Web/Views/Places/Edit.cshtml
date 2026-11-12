@@ -1,3 +1,40 @@
 @model Place
-@{ViewData["Title"]="تفاصيل المكان";}
-<div class="page-heading"><div><h1>تفاصيل المكان</h1><p>المعلومات تظهر بالتطبيق من نفس قاعدة البيانات</p></div><a asp-action="Index" class="btn ghost">رجوع للأماكن</a></div><form asp-action="Save" method="post" class="panel edit-form"><input asp-for="Id" type="hidden"/><div asp-validation-summary="All" class="validation"></div><div class="form-grid"><div><label asp-for="Name">اسم المكان</label><input asp-for="Name"/></div><div><label asp-for="OwnerUserId">المالك</label><select asp-for="OwnerUserId" asp-items="ViewBag.Owners"><option value="">اختر المالك</option></select></div><div><label asp-for="Type">نوع المكان</label><input asp-for="Type"/></div><div><label asp-for="Category">التصنيف</label><input asp-for="Category" list="categories"/><datalist id="categories">@foreach(var c in new[]{"بادل","ملاعب","بليارد","ألعاب إلكترونية","منتزهات ومنتجعات","كافيهات","مطاعم","مسابح","فعاليات","أنشطة عائلية"}){<option value="@c"/>}</datalist></div><div><label asp-for="Area">المنطقة</label><input asp-for="Area"/></div><div><label asp-for="Dist">المسافة الوصفية</label><input asp-for="Dist"/></div><div><label asp-for="Phone">رقم الهاتف</label><input asp-for="Phone" dir="ltr"/></div><div><label asp-for="ImageKey">مفتاح الصورة بالتطبيق</label><input asp-for="ImageKey" dir="ltr"/></div><div><label asp-for="Price">السعر بالدينار العراقي</label><input asp-for="Price" min="0"/></div><div><label asp-for="Unit">وحدة التسعير</label><select asp-for="Unit">@foreach(var u in new[]{"ساعة","شخص","طفل","تذكرة"}){<option>@u</option>}</select></div><div><label asp-for="Kind">حالة الحجز</label><select asp-for="Kind"><option value="open">متاح</option><option value="slots">أوقات محددة</option><option value="full">مكتمل — انتظار فقط</option></select></div><div class="check-group"><label><input asp-for="Featured"/> مكان مميز</label><label><input asp-for="Active"/> ظاهر بالتطبيق</label></div></div><div class="form-actions"><button class="btn primary">حفظ المكان</button><a asp-action="Index" class="btn ghost">إلغاء</a></div></form>
+@{ ViewData["Title"] = string.IsNullOrEmpty(Model.Name) ? "مكان جديد" : "تعديل المكان"; }
+<div class="page-bar">
+    <p class="lead">المعلومات تظهر بالتطبيق من نفس قاعدة البيانات.</p>
+    <a asp-action="Index" class="btn ghost">رجوع للأماكن</a>
+</div>
+<form asp-action="Save" method="post" class="panel edit-form">
+    <input asp-for="Id" type="hidden"/>
+    <div asp-validation-summary="All" class="validation"></div>
+    <fieldset>
+        <legend>تعريف المكان</legend>
+        <div class="form-grid">
+            <div class="field"><label asp-for="Name">اسم المكان</label><input asp-for="Name"/><span asp-validation-for="Name"></span></div>
+            <div class="field"><label asp-for="OwnerUserId">المالك</label><select asp-for="OwnerUserId" asp-items="ViewBag.Owners"><option value="">اختر المالك</option></select><span asp-validation-for="OwnerUserId"></span></div>
+            <div class="field"><label asp-for="Type">نوع المكان</label><input asp-for="Type"/></div>
+            <div class="field"><label asp-for="Category">التصنيف</label><input asp-for="Category" list="categories"/><span asp-validation-for="Category"></span>
+                <datalist id="categories">@foreach (var c in new[] { "بادل", "ملاعب", "بليارد", "ألعاب إلكترونية", "منتزهات ومنتجعات", "كافيهات", "مطاعم", "مسابح", "فعاليات", "أنشطة عائلية" }) { <option value="@c"/> }</datalist>
+            </div>
+        </div>
+    </fieldset>
+    <fieldset>
+        <legend>الموقع والتواصل</legend>
+        <div class="form-grid">
+            <div class="field"><label asp-for="Area">المنطقة</label><input asp-for="Area"/></div>
+            <div class="field"><label asp-for="Dist">المسافة الوصفية</label><input asp-for="Dist"/></div>
+            <div class="field"><label asp-for="Phone">رقم الهاتف</label><input asp-for="Phone" dir="ltr" inputmode="tel"/></div>
+            <div class="field"><label asp-for="ImageKey">مفتاح الصورة بالتطبيق</label><input asp-for="ImageKey" dir="ltr"/></div>
+        </div>
+    </fieldset>
+    <fieldset>
+        <legend>السعر والحجز</legend>
+        <div class="form-grid">
+            <div class="field"><label asp-for="Price">السعر بالدينار العراقي</label><input asp-for="Price" min="0"/><span asp-validation-for="Price"></span></div>
+            <div class="field"><label asp-for="Unit">وحدة التسعير</label><select asp-for="Unit">@foreach (var u in new[] { "ساعة", "شخص", "طفل", "تذكرة" }) { <option>@u</option> }</select></div>
+            <div class="field"><label asp-for="Kind">حالة الحجز</label><select asp-for="Kind"><option value="open">متاح</option><option value="slots">أوقات محددة</option><option value="full">مكتمل — انتظار فقط</option></select></div>
+            <div class="check-group"><label><input asp-for="Featured"/> مكان مميز</label><label><input asp-for="Active"/> ظاهر بالتطبيق</label></div>
+        </div>
+    </fieldset>
+    <div class="form-actions"><button class="btn primary" type="submit">حفظ المكان</button><a asp-action="Index" class="btn ghost">إلغاء</a></div>
+</form>

@@ -1,3 +1,29 @@
 @model AppUser
-@{ViewData["Title"]="تفاصيل المستخدم";}
-<div class="page-heading"><div><h1>تفاصيل المستخدم</h1><p>إدارة الحساب والدور والنقاط.</p></div><a asp-action="Index" class="btn ghost">رجوع</a></div><form asp-action="Save" method="post" class="panel edit-form"><input asp-for="Id" type="hidden"/><div asp-validation-summary="All" class="validation"></div><div class="form-grid"><div><label asp-for="Name">الاسم</label><input asp-for="Name"/></div><div><label asp-for="Phone">رقم الهاتف</label><input asp-for="Phone" dir="ltr" placeholder="07700000001"/></div><div><label asp-for="Role">الدور</label><select asp-for="Role"><option value="Customer">زبون</option><option value="Owner">صاحب مكان</option></select></div><div><label asp-for="Governorate">المحافظة</label><input asp-for="Governorate"/></div><div><label asp-for="Area">المنطقة</label><input asp-for="Area"/></div><div><label asp-for="Birth">تاريخ الميلاد</label><input asp-for="Birth"/></div><div><label asp-for="Points">النقاط</label><input asp-for="Points" min="0"/></div><div class="check-group"><label><input asp-for="Active"/> الحساب فعّال</label></div></div><div class="form-actions"><button class="btn primary">حفظ المستخدم</button><a asp-action="Index" class="btn ghost">إلغاء</a></div></form>
+@{ ViewData["Title"] = Model.Id == 0 ? "مستخدم جديد" : "تعديل المستخدم"; }
+<div class="page-bar">
+    <p class="lead">إدارة الحساب والدور والنقاط. الدور المتاح زبون أو صاحب مكان.</p>
+    <a asp-action="Index" class="btn ghost">رجوع</a>
+</div>
+<form asp-action="Save" method="post" class="panel edit-form">
+    <input asp-for="Id" type="hidden"/>
+    <div asp-validation-summary="All" class="validation"></div>
+    <fieldset>
+        <legend>الحساب</legend>
+        <div class="form-grid">
+            <div class="field"><label asp-for="Name">الاسم</label><input asp-for="Name" autocomplete="name"/><span asp-validation-for="Name"></span></div>
+            <div class="field"><label asp-for="Phone">رقم الهاتف</label><input asp-for="Phone" dir="ltr" inputmode="tel" autocomplete="tel" placeholder="07xxxxxxxxx"/><span asp-validation-for="Phone"></span></div>
+            <div class="field"><label asp-for="Role">الدور</label><select asp-for="Role"><option value="Customer">زبون</option><option value="Owner">صاحب مكان</option></select><span asp-validation-for="Role"></span></div>
+            <div class="field"><label asp-for="Points">النقاط</label><input asp-for="Points" min="0"/><span asp-validation-for="Points"></span></div>
+        </div>
+    </fieldset>
+    <fieldset>
+        <legend>الموقع</legend>
+        <div class="form-grid">
+            <div class="field"><label asp-for="Governorate">المحافظة</label><input asp-for="Governorate"/></div>
+            <div class="field"><label asp-for="Area">المنطقة</label><input asp-for="Area"/></div>
+            <div class="field"><label asp-for="Birth">تاريخ الميلاد</label><input asp-for="Birth"/></div>
+            <div class="check-group"><label><input asp-for="Active"/> الحساب فعّال</label></div>
+        </div>
+    </fieldset>
+    <div class="form-actions"><button class="btn primary" type="submit">حفظ المستخدم</button><a asp-action="Index" class="btn ghost">إلغاء</a></div>
+</form>

@@ -1,3 +1,43 @@
-@model List<Offer>
-@{ViewData["Title"]="العروض";}
-<div class="page-heading"><div><div class="eyebrow">عرض أحلى، طلعة أكثر</div><h1>العروض</h1><p>أضف عروضك وتابع تفاعل الزبائن.</p></div><a class="btn primary" asp-action="Create">＋ عرض جديد</a></div><div class="offers-grid">@foreach(var o in Model){<article class="panel offer-card"><div class="section-head"><span class="offer-icon">◇</span><span class="status @(o.Active?"ok":"pending")">@(o.Active?"فعّال":"متوقف")</span></div><small class="muted">@o.Place?.Name · @o.Area</small><h2>@o.Title</h2><p>@o.Disc</p><div class="offer-price"><strong>@o.NewPrice.ToString("N0") <small>د.ع</small></strong><del>@o.OldPrice.ToString("N0")</del></div><p class="muted">◷ @o.ExpiryText @o.ExpiresOn?.ToString("yyyy-MM-dd")</p><div class="offer-stats"><div><strong>@o.Views.ToString("N0")</strong><small>مشاهدة</small></div><div><strong>@o.Clicks.ToString("N0")</strong><small>نقرة</small></div><div><strong>@o.Books</strong><small>حجز</small></div></div><div class="card-foot"><a asp-action="Edit" asp-route-id="@o.Id">تعديل العرض ←</a><form asp-action="Toggle" method="post"><input name="id" type="hidden" value="@o.Id"/><button class="text-btn">@(o.Active?"إيقاف":"تفعيل")</button></form></div></article>}</div>@if(Model.Count==0){<div class="panel empty">بعد ماكو عروض</div>}
+@model PagedList<Offer>
+@{
+    ViewData["Title"] = "العروض";
+    ViewData["Search"] = "ابحث بعنوان العرض أو المكان";
+}
+<div class="page-bar">
+    <p class="lead">@Model.Page.Total.ToString("N0") عرض ضمن النتائج. المشاهدات والنقرات والحجوزات من السجل الفعلي.</p>
+    <a class="btn primary" asp-action="Create">@Ui.Icon("plus") عرض جديد</a>
+</div>
+<section class="panel table-panel">
+    <div class="table-wrap">
+        <table class="stack">
+            <thead><tr><th>العرض</th><th>المكان</th><th>السعر</th><th>التفاعل</th><th>الانتهاء</th><th>الحالة</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var o in Model.Items)
+            {
+                <tr>
+                    <td data-label="العرض"><strong>@o.Title</strong><small>@o.Disc</small></td>
+                    <td data-label="المكان">@o.Place?.Name<small>@o.Area</small></td>
+                    <td data-label="السعر"><strong class="price">@o.NewPrice.ToString("N0")</strong><small><del>@o.OldPrice.ToString("N0")</del> د.ع</small></td>
+                    <td data-label="التفاعل">@o.Views.ToString("N0") مشاهدة<small>@o.Clicks.ToString("N0") نقرة · @o.Books حجز</small></td>
+                    <td data-label="الانتهاء">@o.ExpiryText<small>@o.ExpiresOn?.ToString("yyyy-MM-dd")</small></td>
+                    <td data-label="الحالة"><span class="status @(o.Active ? "ok" : "pending")">@(o.Active ? "فعّال" : "متوقف")</span></td>
+                    <td data-label="إجراء">
+                        <div class="row-actions">
+                            <a class="btn ghost compact" asp-action="Edit" asp-route-id="@o.Id">@Ui.Icon("pencil") تعديل</a>
+                            <form asp-action="Toggle" method="post" data-confirm="@(o.Active ? "إيقاف" : "تفعيل") العرض «@o.Title»؟" data-confirm-ok="@(o.Active ? "إيقاف" : "تفعيل")">
+                                <input name="id" type="hidden" value="@o.Id"/>
+                                <button class="btn soft compact" type="submit">@(o.Active ? "إيقاف" : "تفعيل")</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            }
+            @if (Model.Items.Count == 0)
+            {
+                <tr><td colspan="7" class="empty">ماكو عروض مطابقة. أضف عرضاً أو غيّر البحث.</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    <partial name="_Pager" model="Model.Page"/>
+</section>

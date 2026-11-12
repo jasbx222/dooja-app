@@ -5,7 +5,18 @@ using Microsoft.EntityFrameworkCore;
 namespace Dooja.Web.Controllers;
 public class UsersController(DoojaDb db) : DashboardControllerBase
 {
-    public async Task<IActionResult> Index(string? q) { ViewBag.Q = q; var us = db.Users.AsNoTracking(); if (!string.IsNullOrWhiteSpace(q)) us = us.Where(x => x.Name.Contains(q) || x.Phone.Contains(q)); return View(await us.OrderBy(x => x.Name).Take(300).ToListAsync()); }
+    public async Task<IActionResult> Index(string? q, int? page, int? size)
+    {
+        if (Paging.Reject(page, size) is { } bad) return bad;
+        var (p, s) = Paging.Normalize(page, size);
+        ViewData["Q"] = q;
+        var us = db.Users.AsNoTracking().AsQueryable();
+        if (!string.IsNullOrWhiteSpace(q)) us = us.Where(x => x.Name.Contains(q) || x.Phone.Contains(q));
+        var total = await us.CountAsync();
+        var bar = PageBar.Create(p, s, total);
+        var items = await us.OrderBy(x => x.Name).ThenBy(x => x.Id).Skip((bar.Page - 1) * s).Take(s).ToListAsync();
+        return View(new PagedList<AppUser> { Items = items, Page = bar });
+    }
     [HttpGet] public IActionResult Create() => View("Edit", new AppUser());
     [HttpGet] public async Task<IActionResult> Edit(int id) { var u = await db.Users.FindAsync(id); return u == null ? NotFound() : View(u); }
     [HttpPost]

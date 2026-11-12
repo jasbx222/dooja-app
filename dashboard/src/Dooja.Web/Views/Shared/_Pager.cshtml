@@ -1,0 +1,39 @@
+@model PageBar
+<footer class="pager">
+    <p>من @Model.From.ToString("N0") إلى @Model.To.ToString("N0") من أصل @Model.Total.ToString("N0")</p>
+    @if (Model.Pages > 1)
+    {
+        var start = Math.Max(1, Model.Page - 2);
+        var end = Math.Min(Model.Pages, start + 4);
+        start = Math.Max(1, end - 4);
+        <nav aria-label="الصفحات">
+            @if (Model.Page > 1)
+            {
+                <a href="@Ui.PageHref(Context.Request, Model.Page - 1)">السابق</a>
+            }
+            else
+            {
+                <span aria-disabled="true">السابق</span>
+            }
+            @for (var i = start; i <= end; i++)
+            {
+                if (i == Model.Page)
+                {
+                    <span aria-current="page">@i</span>
+                }
+                else
+                {
+                    <a href="@Ui.PageHref(Context.Request, i)">@i</a>
+                }
+            }
+            @if (Model.Page < Model.Pages)
+            {
+                <a href="@Ui.PageHref(Context.Request, Model.Page + 1)">التالي</a>
+            }
+            else
+            {
+                <span aria-disabled="true">التالي</span>
+            }
+        </nav>
+    }
+</footer>

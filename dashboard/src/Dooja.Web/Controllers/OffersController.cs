@@ -6,7 +6,18 @@ using Microsoft.EntityFrameworkCore;
 namespace Dooja.Web.Controllers;
 public class OffersController(DoojaDb db) : DashboardControllerBase
 {
-    public async Task<IActionResult> Index() => View(await db.Offers.AsNoTracking().Include(x => x.Place).ToListAsync());
+    public async Task<IActionResult> Index(string? q, int? page, int? size)
+    {
+        if (Paging.Reject(page, size) is { } bad) return bad;
+        var (p, s) = Paging.Normalize(page, size);
+        ViewData["Q"] = q;
+        var query = db.Offers.AsNoTracking().Include(x => x.Place).AsQueryable();
+        if (!string.IsNullOrWhiteSpace(q)) query = query.Where(x => x.Title.Contains(q) || x.Area.Contains(q) || x.Place!.Name.Contains(q));
+        var total = await query.CountAsync();
+        var bar = PageBar.Create(p, s, total);
+        var items = await query.OrderBy(x => x.Title).ThenBy(x => x.Id).Skip((bar.Page - 1) * s).Take(s).ToListAsync();
+        return View(new PagedList<Offer> { Items = items, Page = bar });
+    }
     private async Task Places() => ViewBag.Places = new SelectList(await db.Places.ToListAsync(), "Id", "Name");
     [HttpGet] public async Task<IActionResult> Create() { await Places(); return View("Edit", new Offer()); }
     [HttpGet] public async Task<IActionResult> Edit(string id) { var o = await db.Offers.FindAsync(id); if (o == null) return NotFound(); await Places(); return View(o); }

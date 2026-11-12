@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../dsl.dart';
@@ -52,7 +53,7 @@ class Onboard extends Scr {
     (
       'padel',
       'احجز موعدك بثواني',
-      'شوف الأوقات المتوفرة هسه، اختار الموعد وادفع كاش أو زين كاش بدون مكالمات.',
+      'شوف الأوقات المتوفرة هسه، اختار الموعد وادفع كاش بالمكان بدون مكالمات.',
     ),
     (
       'reel',
@@ -64,11 +65,11 @@ class Onboard extends Scr {
   Widget view(c, s) {
     final i = s.get('i', 0);
     final pg = pages[i];
-    void next() => i < 2 ? s.set('i', i + 1) : replace(c, const Login());
+    void next() => i < 2 ? s.set('i', i + 1) : replace(c, const CreateAccount());
     return screen(c, [
       R(
         [
-          F([T('تخطي', 14, 700, MU)], tap: () => replace(c, const Login())),
+          F([T('تخطي', 14, 700, MU)], tap: () => replace(c, const CreateAccount())),
         ],
         jc: 'e',
         w: 'fill',
@@ -124,6 +125,10 @@ class Login extends Scr {
     final busy = s.get('busy', false);
     final err = s.get<String?>('err', null);
     Future<void> send() async {
+      if (!kDebugMode) {
+        s.set('err', accountPaused);
+        return;
+      }
       final d = normPhone(ctl.text);
       if (d == null)
         return s.set('err', 'دخّل رقم موبايل عراقي صحيح، مثل 0770 000 0001');
@@ -145,7 +150,14 @@ class Login extends Scr {
       F(
         [
           T('هلا بيك', 26, 800),
-          T('دخّل رقم موبايلك ونرسلك رمز تحقق', 15, 400, MU),
+          T(
+            kDebugMode
+                ? 'دخّل رقم موبايلك ونرسلك رمز تحقق'
+                : 'تسجيل الدخول بالرمز متوقف مؤقتاً',
+            15,
+            400,
+            MU,
+          ),
         ],
         g: 8,
         w: 'fill',
@@ -222,13 +234,13 @@ class Login extends Scr {
             'كمّل بحساب Apple',
             icon: 'smartphone',
             kind: 'g',
-            tap: () => toast(c, 'استخدم الحساب التجريبي برقم الموبايل'),
+            tap: () => toast(c, 'تسجيل Apple قريباً'),
           ),
           btn(
             'كمّل بحساب Google',
             icon: 'mail',
             kind: 'g',
-            tap: () => toast(c, 'استخدم الحساب التجريبي برقم الموبايل'),
+            tap: () => toast(c, 'تسجيل Google قريباً'),
           ),
         ],
         g: 12,
@@ -238,34 +250,47 @@ class Login extends Scr {
       BOX(w: 10, h: 24),
       F(
         [
+          if (const bool.fromEnvironment('SHOW_DEMO_ACCOUNTS'))
+            F(
+              [
+                R([
+                  I('info', 14, P),
+                  T('حسابات تجريبية · الرمز 1234', 12, 700, P),
+                ], g: 6),
+                F(
+                  [T('زبون: 07700000001', 12, 500, INK)],
+                  tap: () {
+                    ctl.text = '07700000001';
+                    s.set('err', null);
+                  },
+                ),
+                F(
+                  [T('صاحب مشروع: 07700000002', 12, 500, INK)],
+                  tap: () {
+                    ctl.text = '07700000002';
+                    s.set('err', null);
+                  },
+                ),
+              ],
+              g: 4,
+              al: 'c',
+              p: [10, 14],
+              r: 14,
+              bg: BG,
+            ),
+          BOX(h: 10, w: 1),
           F(
             [
-              R([
-                I('info', 14, P),
-                T('حسابات تجريبية · الرمز 1234', 12, 700, P),
-              ], g: 6),
-              F(
-                [T('زبون: 07700000001', 12, 500, INK)],
-                tap: () {
-                  ctl.text = '07700000001';
-                  s.set('err', null);
-                },
-              ),
-              F(
-                [T('صاحب مشروع: 07700000002', 12, 500, INK)],
-                tap: () {
-                  ctl.text = '07700000002';
-                  s.set('err', null);
-                },
+              Tn(
+                'ما عندك حساب؟ أنشئ حساب',
+                s: 14,
+                w: 700,
+                c: P,
+                al: 'CENTER',
               ),
             ],
-            g: 4,
-            al: 'c',
-            p: [10, 14],
-            r: 14,
-            bg: BG,
+            tap: () => push(c, const CreateAccount()),
           ),
-          BOX(h: 10, w: 1),
           Tn(
             'بالمتابعة توافق على الشروط وسياسة الخصوصية',
             s: 12,
@@ -275,6 +300,162 @@ class Login extends Scr {
         ],
         w: 'fill',
         al: 'c',
+      ),
+    ]);
+  }
+}
+
+const accountPaused =
+    'التحقق برسالة الموبايل متوقف مؤقتاً. ما ننشئ حساب وما نرسل رمز.';
+
+class CreateAccount extends Scr {
+  const CreateAccount({super.key});
+  @override
+  Widget view(c, s) {
+    final name = s.ctl('name');
+    final phone = s.ctl('ph');
+    final err = s.get<String?>('err', null);
+    final paused = s.get('paused', false);
+    if (paused) {
+      return screen(c, [
+        topbar('إنشاء حساب'),
+        F(
+          [
+            BOX(h: 36, w: 1),
+            F(
+              [I('user-plus', 44, P)],
+              al: 'c',
+              jc: 'c',
+              w: 110,
+              h: 110,
+              r: 32,
+              bg: PL,
+            ),
+            Tn('إنشاء الحساب متوقف مؤقتاً', s: 22, w: 800, al: 'CENTER'),
+            Tn(accountPaused, s: 14, c: MU, al: 'CENTER', w2: 300, lh: 22),
+            btn(
+              'عندي حساب',
+              kind: 'g',
+              tap: () => replace(c, const Login()),
+            ),
+          ],
+          g: 16,
+          al: 'c',
+          w: 'fill',
+          p: [0, 24],
+        ),
+      ]);
+    }
+    return screen(c, [
+      topbar('إنشاء حساب', back: Navigator.of(c).canPop()),
+      F(
+        [
+          T('أنشئ حسابك', 26, 800),
+          T('الاسم ورقم الموبايل يكفون للبداية', 15, 400, MU),
+        ],
+        g: 8,
+        w: 'fill',
+        p: [8, 24],
+      ),
+      F(
+        [
+          F(
+            [
+              T('اسمك', 13, 500, MU),
+              R(
+                [
+                  N(
+                    field(name, 'مثال: حسين', 16, maxLength: 80),
+                    fillW: true,
+                  ),
+                ],
+                bg: G,
+                r: 14,
+                h: 52,
+                w: 'fill',
+                p: [0, 16],
+              ),
+            ],
+            g: 8,
+            w: 'fill',
+          ),
+          F(
+            [
+              T('رقم الموبايل', 13, 500, MU),
+              R(
+                [
+                  R(
+                    [T('+964', 15, 700, INK), S(IQFLAG, 22, 15)],
+                    g: 8,
+                    bg: G,
+                    r: 14,
+                    h: 52,
+                    p: [0, 14],
+                  ),
+                  R(
+                    [
+                      N(
+                        field(
+                          phone,
+                          '770 123 4567',
+                          16,
+                          kb: TextInputType.phone,
+                          al: TextAlign.left,
+                          w: 500,
+                          dir: TextDirection.ltr,
+                          maxLength: 14,
+                        ),
+                        fillW: true,
+                      ),
+                    ],
+                    g: 10,
+                    bg: G,
+                    r: 14,
+                    h: 52,
+                    w: 'fill',
+                    p: [0, 16],
+                  ),
+                ],
+                g: 8,
+                w: 'fill',
+                ltr: true,
+              ),
+            ],
+            g: 8,
+            w: 'fill',
+          ),
+          if (err != null) T(err, 12, 500, RD),
+          btn(
+            'إنشاء الحساب',
+            tap: () {
+              if (name.text.trim().length < 2) {
+                s.set('err', 'اكتب اسمك');
+                return;
+              }
+              if (normPhone(phone.text) == null) {
+                s.set('err', 'دخّل رقم موبايل عراقي صحيح');
+                return;
+              }
+              s.set('err', null);
+              s.set('paused', true);
+            },
+          ),
+          F(
+            [
+              Tn(
+                'عندك حساب؟ سجّل دخول',
+                s: 14,
+                w: 700,
+                c: P,
+                al: 'CENTER',
+              ),
+            ],
+            tap: () => replace(c, const Login()),
+          ),
+        ],
+        g: 16,
+        w: 'fill',
+        p: [16, 24],
       ),
     ]);
   }

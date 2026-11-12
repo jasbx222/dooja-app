@@ -477,7 +477,7 @@ Future<void> postSheet(BuildContext c) => openSheet(
       },
     ),
     btn(
-      'منشور بصورة المشروع',
+      'ريل · قريباً',
       tap: () {
         Navigator.pop(sc);
         push(c, const OReel());
@@ -550,43 +550,11 @@ class OOffer extends Scr {
 class OReel extends Scr {
   const OReel({super.key});
   @override
-  Widget view(c, s) {
-    final caption = s.ctl('caption');
-    return screen(
-      c,
-      [
-        topbar('منشور جديد'),
-        ownerSelector(c),
-        body([
-          Tn(
-            'ينشر صورة المشروع الحالية ووصفاً، وليس فيديو مرفوعاً. رفع الفيديو غير مربوط.',
-            s: 14,
-            c: MU,
-          ),
-          if (repo.ownerPlace != null) img(repo.ownerPlace!.img, 350, 200, 18),
-          inp('الوصف', '', ctl: caption),
-        ]),
-      ],
-      bottomBar: bottom([
-        btn(
-          'نشر',
-          tap: () async {
-            if (caption.text.trim().isEmpty) {
-              toast(c, 'اكتب الوصف');
-              return;
-            }
-            if (await apiAction(
-                  c,
-                  repo.postReel(caption.text.trim()),
-                  'تم النشر',
-                ) &&
-                c.mounted)
-              Navigator.pop(c);
-          },
-        ),
-      ]),
-    );
-  }
+  Widget view(c, s) => noIntegration(
+    c,
+    'ريلز المشروع',
+    'نشر الريلز قريباً. رفع الفيديو غير مفعّل، وما ننشر صورة المشروع بدل الريل.',
+  );
 }
 
 class OProject extends Scr {

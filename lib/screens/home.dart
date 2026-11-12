@@ -186,27 +186,6 @@ class Home extends Scr {
       p: 12,
       tap: () => push(c, OfferDetail(o)),
     );
-    Widget reel(int i, String views) {
-      final r = repo.reels[i];
-      return img(
-        r.img,
-        124,
-        210,
-        18,
-        [
-          R([I('play', 14, WH, WH), T(views, 12, 700, WH)], g: 4),
-          T(r.place, 13, 800, WH),
-        ],
-        'v',
-        12,
-        's',
-        'e',
-        4,
-        null,
-        () => push(c, Reels(start: i)),
-      );
-    }
-
     final hz = (List<Widget> k, double g) => SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: R(k, g: g, al: 's', p: [0, 20]),
@@ -323,11 +302,40 @@ class Home extends Scr {
           w: 'fill',
           p: [0, 20],
         ),
-        sechead('ريلز ضوجة', 'video', 'عرض الكل', () => push(c, const Reels())),
-        hz([
-          for (var i = 0; i < repo.reels.length; i++)
-            reel(i, kfmt(repo.reels[i].likes)),
-        ], 10),
+        sechead('ريلز ضوجة', 'video', 'قريباً', () => push(c, const Reels())),
+        F(
+          [
+            card([
+              F(
+                [
+                  F(
+                    [I('video', 28, P)],
+                    al: 'c',
+                    jc: 'c',
+                    w: 64,
+                    h: 64,
+                    r: 20,
+                    bg: PL,
+                  ),
+                  Tn('الريلز قريباً', s: 16, w: 800, al: 'CENTER'),
+                  Tn(
+                    'رح تشوف فيديوهات الأماكن وتحجز منها مباشرة. الميزة تجهز للزبائن، وما نعرض محتوى تجريبي.',
+                    s: 13,
+                    c: MU,
+                    al: 'CENTER',
+                    w2: 280,
+                    lh: 20,
+                  ),
+                ],
+                g: 10,
+                al: 'c',
+                w: 'fill',
+              ),
+            ], p: 16, tap: () => push(c, const Reels())),
+          ],
+          w: 'fill',
+          p: [0, 20],
+        ),
         sechead(
           'ضوجة تقترحلك',
           'sparkle',

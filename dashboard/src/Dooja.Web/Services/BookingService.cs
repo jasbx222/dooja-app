@@ -1,3 +1,4 @@
+using System.Data;
 using Dooja.Web.Models;
 using Dooja.Web.Data;
 using Microsoft.EntityFrameworkCore;
@@ -8,8 +9,8 @@ public class BookingService(DoojaDb db)
     public async Task<(Booking? Booking, string? Error)> Create(int userId, string placeId, DateOnly day, string time, int hours, int people, string pay, bool wait, string? offerId = null)
     {
         if (day < Today || day > Today.AddYears(1) || hours < 1 || hours > 12 || people < 1 || people > 100 || !TimeOnly.TryParseExact(time, "HH:mm", out var start) || start.Hour + hours > 24) return (null, "تفاصيل الحجز غير صحيحة، الوقت بصيغة HH:mm والتاريخ YYYY-MM-DD");
-        if (pay is not ("كاش بالمكان" or "زين كاش" or "بطاقة")) return (null, "طريقة الدفع غير مدعومة");
-        await using var tx = await db.Database.BeginTransactionAsync();
+        if (pay != "كاش بالمكان") return (null, "الدفع الإلكتروني غير متاح. المتاح كاش بالمكان فقط");
+        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         var p = await db.Places.FirstOrDefaultAsync(x => x.Id == placeId && x.Active);
         if (p == null) return (null, "المكان غير موجود");
         var closed = await db.ClosedSlots.Where(x => x.PlaceId == placeId && x.Day == day).ToListAsync();
@@ -29,7 +30,7 @@ public class BookingService(DoojaDb db)
     }
     public async Task<string?> SetStatus(Booking b, string status)
     {
-        await using var tx = await db.Database.BeginTransactionAsync();
+        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         if (!BookingStates.All.Contains(status) || !BookingStates.CanChange(b.Status, status)) return "لا يمكن تغيير حالة هذا الحجز";
         if (b.Status == status) return null;
         if (status == "مؤكد")
