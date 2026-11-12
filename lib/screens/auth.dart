@@ -247,50 +247,51 @@ class Login extends Scr {
         w: 'fill',
         p: [0, 24],
       ),
+      if (kDebugMode) ...[
+        BOX(w: 10, h: 16),
+        F(
+          [
+            R([
+              I('info', 14, P),
+              T('تطوير فقط · الرمز 1234', 12, 700, P),
+            ], g: 6),
+            F(
+              [T('زبون: 07700000001', 12, 500, INK)],
+              tap: () {
+                ctl.text = '07700000001';
+                s.set('err', null);
+              },
+            ),
+            F(
+              [T('صاحب مشروع: 07700000002', 12, 500, INK)],
+              tap: () {
+                ctl.text = '07700000002';
+                s.set('err', null);
+              },
+            ),
+          ],
+          g: 4,
+          al: 'c',
+          p: [10, 14],
+          r: 14,
+          bg: BG,
+        ),
+      ],
       BOX(w: 10, h: 24),
       F(
         [
-          if (const bool.fromEnvironment('SHOW_DEMO_ACCOUNTS'))
-            F(
-              [
-                R([
-                  I('info', 14, P),
-                  T('حسابات تجريبية · الرمز 1234', 12, 700, P),
-                ], g: 6),
-                F(
-                  [T('زبون: 07700000001', 12, 500, INK)],
-                  tap: () {
-                    ctl.text = '07700000001';
-                    s.set('err', null);
-                  },
-                ),
-                F(
-                  [T('صاحب مشروع: 07700000002', 12, 500, INK)],
-                  tap: () {
-                    ctl.text = '07700000002';
-                    s.set('err', null);
-                  },
-                ),
-              ],
-              g: 4,
-              al: 'c',
-              p: [10, 14],
-              r: 14,
-              bg: BG,
-            ),
-          BOX(h: 10, w: 1),
-          F(
-            [
-              Tn(
-                'ما عندك حساب؟ أنشئ حساب',
-                s: 14,
-                w: 700,
-                c: P,
-                al: 'CENTER',
-              ),
-            ],
-            tap: () => push(c, const CreateAccount()),
+          Tn(
+            'ما عندك حساب؟ أنشئ حساب',
+            s: 14,
+            w: 700,
+            c: P,
+            al: 'CENTER',
           ),
+        ],
+        tap: () => push(c, const CreateAccount()),
+      ),
+      F(
+        [
           Tn(
             'بالمتابعة توافق على الشروط وسياسة الخصوصية',
             s: 12,

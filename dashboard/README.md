@@ -1,17 +1,16 @@
 # ضوجة · DOOJA — ASP.NET Core 8 MVC + Web API
 
-Arabic RTL administration dashboard and JSON API for [jasbx222/dooja-app](https://github.com/jasbx222/dooja-app). Built locally, without cloning or changing the Flutter repository and without pushing anything to GitHub.
+Arabic RTL administration dashboard and JSON API for [jasbx222/dooja-app](https://github.com/jasbx222/dooja-app). Run these commands from this folder (`dashboard/` inside the app repo, or the root of the dashboard repo).
 
 ## Run
 
-Requires .NET SDK 8 (tested with **8.0.427**).
+Requires .NET SDK 8 (tested with **8.0.427**). The launch profile turns on Development and `Seed__Demo` so local booking samples exist. Production ignores that flag.
 
 ```bash
 export PATH="$HOME/.dotnet:$PATH"
-cd /workspace/dooja-dashboard
 dotnet restore
 dotnet build
-dotnet run --project src/Dooja.Web
+dotnet run --project src/Dooja.Web --urls http://127.0.0.1:5080
 ```
 
 Open **http://localhost:5080**. The launch profile selects Development. Without a launch profile:
@@ -62,6 +61,18 @@ Development imports the reference app's **sample records** once: p1–p12, five 
 All dashboard writes require Admin cookie authentication **and** antiforgery. Mutation actions use POST. Places are hidden instead of destructively deleting related bookings. Lists cap bookings/users/reviews at 300 rows; search/filter narrows these. API list limits are documented in controller source (places has `page`/`pageSize`).
 
 KPI days use **Asia/Baghdad** for this Iraqi business. Income is the total of bookings with recorded arrival or completed status, **not a payment-provider settlement report**. UTC is used for machine timestamps (`createdAt`).
+
+## Store
+
+The shop is database-backed. Production does not import demonstration places or products: set `Seed__Demo=true` only on a disposable Development database. `Seed:Demo` in `appsettings.json` is false, and a non-Development host ignores the flag. A Development database with that flag receives the gaming catalog once, when it has no products yet: six categories, eighteen products with descriptions, specs, prices, stock, and photos, plus Baghdad delivery areas. Cash on delivery is the only customer payment method. The dashboard refuses to enable online payment because no payment gateway is implemented. Checkout also rejects an online method unless `Payment__OnlineProvider` is set, which is only a server-side lock and does not charge a card.
+
+Customer API (prices and stock are calculated on the server; client totals are ignored):
+
+- `GET /api/shop/settings` `GET /api/shop/categories` `GET /api/shop/products` `GET /api/shop/products/{id}`
+- `GET /api/cart` `POST /api/cart/items` `PUT /api/cart/items/{productId}` `DELETE /api/cart/items/{productId}` `POST /api/cart/merge`
+- `GET /api/orders` `GET /api/orders/{id}` `POST /api/orders` `POST /api/orders/{id}/cancel`
+
+`POST /api/orders` accepts `idempotencyKey`. Repeating it returns the original order and does not sell the stock twice. Dashboard pages: `/ShopProducts`, `/ShopCategories`, `/ShopOrders`, `/ShopInventory`, `/ShopReports`, `/ShopSettings`. Money is integer Iraqi dinars, the same unit as bookings, so totals are not floating-point.
 
 ## API conventions and examples
 
@@ -154,15 +165,15 @@ ASPNETCORE_ENVIRONMENT=Development \
 DOOJA_URL=http://127.0.0.1:5081 python3 scripts/smoke.py
 ```
 
-The smoke test writes test records, so **never run it against production**. It verifies API auth/OTP, owner/customer isolation, CRUD persistence, price calculation, double-booking and closed-slot rejection, booking lifecycle, one-time reviews, offers, favorites/follows/likes, comments/notifications, cookie login, antiforgery rejection and HTML rendering of every MVC page. It does not drive or screenshot a browser and does not exercise the unmodified Flutter binary.
+The smoke test writes test records, so **never run it against production**. It verifies API auth/OTP, owner/customer isolation, CRUD persistence, price calculation, double-booking and closed-slot rejection, booking lifecycle, one-time reviews, offers, favorites/follows/likes, comments/notifications, cookie login, antiforgery rejection and HTML rendering of every MVC page. `scripts/shop_smoke.py` covers the store: categories, product images, cart merge, concurrent checkout, idempotent replay, cancellation, inventory, and sales totals. Neither script drives a phone.
 
-## Production setup and remaining Flutter work
+## Production setup and remaining work
 
 1. Host behind HTTPS and configure `AllowedHosts` for the real domain. Production uses HSTS and HTTPS redirection. Configure forwarded headers safely if deploying behind a trusted reverse proxy.
 2. Use a separate empty production DB, `Seed__Demo=false`, a strong `Admin__Password` for its first startup and a secret **at least 32-byte** `Jwt__Key` (environment variables or a secret store, not source control). Back up SQLite and persist the cookie data-protection key directory when using containers. Scale beyond one instance with a shared key store/database and distributed rate limiting.
 3. **SMS delivery is not implemented**: production OTP endpoints intentionally return 503 instead of accepting 1234. Integrate a real SMS OTP provider, secure challenge storage, expiry/attempt limits and verification before enabling production mobile login.
-4. The Flutter app calls these endpoints, persists the token, and refreshes after mutations. Release builds need an explicit HTTPS `API_BASE_URL`. A server bound to 127.0.0.1 is not reachable from a phone. Use explicit CORS origins in production (`Cors__Origins__0`); Development allows any origin.
+4. The Flutter app calls this API when built with `API_BASE_URL` (no `/api` suffix), persists the token, and refreshes after mutations. Release builds need an explicit HTTPS `API_BASE_URL`. Use `http://10.0.2.2:5080` on an Android emulator whose host runs the API. A server bound to 127.0.0.1 is not reachable from a phone. Set explicit CORS origins in production (`Cors__Origins__0`); Development allows any origin. Republish the hosted PWA with `./scripts/publish-flutter-web.sh` from `dashboard/`.
 5. Adapt Dart names: `img→imageKey`, `cat→category`, `nRev→reviewCount` (integer), `rating` (number), `dur→duration`, `pay→payMethod`, `newP/oldP→newPrice/oldPrice`, `exp→expiryText`, `photos→hasPhotos`. Format money/day/time in Flutter. Use ID/code separately; use `hours` rather than trying to parse Arabic duration strings.
-6. Card/ZainCash processing, refunds/settlement, real SMS, push delivery (FCM/APNs), actual video/photo uploads/storage, the customer reels feed, live distance/geolocation, capacity/resource configuration, profile interests/settings, deployment and actual Flutter end-to-end testing remain integration work. Notifications currently persist in DB and are retrieved by the app; no push is claimed. The app shows reels as coming soon and does not publish a place image as a reel.
+6. Card/ZainCash processing, refunds/settlement, real SMS, push delivery (FCM/APNs), actual video/photo uploads/storage, the customer reels feed, live distance/geolocation, capacity/resource configuration, profile interests/settings, deployment and actual Flutter end-to-end testing remain integration work. Store product images (JPEG, PNG, WEBP, up to 4 MB) are saved under `wwwroot/uploads`. Notifications currently persist in the database and are retrieved by the app; no push is sent. The app shows reels as coming soon and does not publish a place image as a reel.
 
-This is a working, persisted dashboard/API. The Flutter app is wired to it. Third-party SMS, payments, push, and media upload are not configured. Demo rows are inserted only when the host is Development and `Seed:Demo` is true.
+This is a working, persisted dashboard/API and Flutter client. Third-party SMS, payments, push, and media upload are not configured. Demo rows are inserted only when the host is Development and `Seed:Demo` is true.

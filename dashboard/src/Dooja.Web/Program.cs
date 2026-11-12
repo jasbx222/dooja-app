@@ -35,12 +35,13 @@ builder.Services.Configure<SmsOptions>(builder.Configuration.GetSection("Sms"));
 builder.Services.AddHttpClient("sms", c => c.Timeout = TimeSpan.FromSeconds(15));
 builder.Services.AddSingleton<ISmsSender, TwilioSmsSender>();
 builder.Services.AddScoped<BookingService>();
+builder.Services.AddScoped<ShopService>();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
  .AddCookie(o => { o.LoginPath = "/Auth/Login"; o.AccessDeniedPath = "/Auth/Denied"; o.Cookie.Name = "Dooja.Dashboard"; o.ExpireTimeSpan = TimeSpan.FromHours(8); o.Cookie.HttpOnly = true; o.Cookie.SameSite = SameSiteMode.Lax; if (!builder.Environment.IsDevelopment()) o.Cookie.SecurePolicy = CookieSecurePolicy.Always; })
  .AddJwtBearer(o => o.TokenValidationParameters = new TokenValidationParameters { ValidateIssuer = true, ValidateAudience = true, ValidateLifetime = true, ValidateIssuerSigningKey = true, ValidIssuer = "Dooja", ValidAudience = "Dooja.App", IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)), ClockSkew = TimeSpan.FromSeconds(30) });
 builder.Services.AddAuthorization();
 builder.Services.AddCors(o => o.AddDefaultPolicy(p => { if (builder.Environment.IsDevelopment()) p.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader(); else { var origins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? []; if (origins.Length > 0) p.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod(); } }));
-builder.Services.AddRateLimiter(o => { o.RejectionStatusCode = 429; o.AddPolicy("auth", ctx => RateLimitPartition.GetFixedWindowLimiter(ClientAddress(ctx), _ => new FixedWindowRateLimiterOptions { PermitLimit = 15, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 })); });
+builder.Services.AddRateLimiter(o => { o.RejectionStatusCode = 429; o.AddPolicy("auth", ctx => RateLimitPartition.GetFixedWindowLimiter(ClientAddress(ctx), _ => new FixedWindowRateLimiterOptions { PermitLimit = 15, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 })); o.AddPolicy("orders", ctx => RateLimitPartition.GetFixedWindowLimiter(ClientAddress(ctx), _ => new FixedWindowRateLimiterOptions { PermitLimit = 20, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 })); });
 builder.Services.Configure<ForwardedHeadersOptions>(o =>
 {
     o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;

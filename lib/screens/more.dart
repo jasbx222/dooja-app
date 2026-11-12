@@ -9,6 +9,7 @@ import 'flow.dart';
 import 'home.dart';
 import 'place.dart';
 import 'owner.dart';
+import 'shop.dart';
 
 (String, String) stColor(String st) => switch (st) {
   'مؤكد' => ('#E8F7EE', OK),
@@ -877,6 +878,8 @@ class Profile extends Scr {
             bg: G,
           ),
           F([
+            it('store', 'التسوق', 'المتجر والسلة والطلبات', () => push(c, const ShopPage())),
+            divider(),
             it(
               'calendar-check',
               'حجوزاتي',

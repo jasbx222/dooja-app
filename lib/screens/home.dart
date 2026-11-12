@@ -7,6 +7,7 @@ import '../repo.dart';
 import 'place.dart';
 import 'flow.dart';
 import 'more.dart';
+import 'shop.dart';
 
 N heartBtn(Place p, {double s = 30, double is_ = 16, List<double>? ab}) {
   final on = repo.favs.contains(p.id);
@@ -209,11 +210,14 @@ class Home extends Scr {
               tap: () => push(c, MapView()),
             ),
             WORD(22),
-            iconbtn(
-              'bell',
-              dot: repo.notifs.any((n) => n.fresh),
-              tap: () => push(c, const Notifs()),
-            ),
+            R([
+              cartButton(c),
+              iconbtn(
+                'bell',
+                dot: repo.notifs.any((n) => n.fresh),
+                tap: () => push(c, const Notifs()),
+              ),
+            ], g: 8),
           ],
           jc: 'sb',
           al: 'c',
@@ -255,6 +259,25 @@ class Home extends Scr {
               bg: WH,
               sk: LN,
               w: 'fill',
+            ),
+            R(
+              [
+                R([
+                  I('store', 22, P),
+                  F([
+                    Tn('التسوق', s: 16, w: 800),
+                    Tn('المتجر، السلة، وطلباتي', s: 12, c: MU),
+                  ], g: 2),
+                ], g: 10, al: 'c'),
+                I('chevron-left', 18, MU),
+              ],
+              jc: 'sb',
+              al: 'c',
+              w: 'fill',
+              p: [14, 16],
+              r: 18,
+              bg: PL,
+              tap: () => push(c, const ShopPage()),
             ),
           ],
           w: 'fill',

@@ -11,7 +11,8 @@
     {
         ("التشغيل", current is "Home" or "Bookings", [("Home", "house", "نظرة عامة"), ("Bookings", "calendar-check", "الحجوزات")]),
         ("المحتوى", current is "Places" or "Offers" or "Reviews", [("Places", "store", "الأماكن"), ("Offers", "badge-percent", "العروض"), ("Reviews", "star", "التقييمات")]),
-        ("الحسابات", current == "Users", [("Users", "users", "المستخدمون")])
+        ("الحسابات", current == "Users", [("Users", "users", "المستخدمون")]),
+        ("المتجر", current is "ShopProducts" or "ShopCategories" or "ShopOrders" or "ShopInventory" or "ShopReports" or "ShopSettings", [("ShopProducts", "layout-grid", "المنتجات"), ("ShopCategories", "layout-grid", "التصنيفات"), ("ShopOrders", "wallet", "الطلبات"), ("ShopInventory", "store", "المخزون"), ("ShopReports", "chart-column", "المبيعات"), ("ShopSettings", "sliders-horizontal", "إعدادات المتجر")])
     };
 }
 <!DOCTYPE html>

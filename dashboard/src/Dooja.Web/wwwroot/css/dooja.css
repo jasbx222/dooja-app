@@ -93,7 +93,11 @@ details.menu summary { cursor: pointer; list-style: none; }
 .menu-empty { color: var(--mu); text-align: center; padding: 16px 8px; font-size: 13px; }
 .profile-meta + form { margin-top: 4px; }
 
-.page-bar { display: flex; justify-content: flex-start; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.page-bar, .page-heading { display: flex; justify-content: flex-start; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.page-heading { align-items: flex-start; }
+.page-heading h1 { margin: 0; font-size: 20px; }
+.page-heading p { margin: 4px 0 0; color: var(--mu); font-size: 13px; }
+.toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
 .lead, .kicker { color: var(--mu); font-size: 13px; }
 .kicker { color: var(--p); font-weight: 700; font-size: 12px; }
 
