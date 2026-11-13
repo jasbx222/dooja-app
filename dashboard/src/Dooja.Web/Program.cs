@@ -49,6 +49,8 @@ builder.Services.Configure<ForwardedHeadersOptions>(o =>
     o.KnownProxies.Clear();
     o.KnownProxies.Add(IPAddress.Loopback);
     o.KnownProxies.Add(IPAddress.IPv6Loopback);
+    // Managed hosts (e.g. Render) terminate TLS on an edge proxy with a dynamic IP.
+    if (builder.Configuration.GetValue<bool>("Proxy:TrustForwardedHeaders")) o.KnownProxies.Clear();
 });
 var app = builder.Build();
 using (var scope = app.Services.CreateScope()) await Seed.Run(scope.ServiceProvider.GetRequiredService<DoojaDb>(), app.Configuration, app.Environment);
