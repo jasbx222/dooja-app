@@ -9,7 +9,6 @@ import 'flow.dart';
 import 'home.dart';
 import 'place.dart';
 import 'owner.dart';
-import 'shop.dart';
 
 (String, String) stColor(String st) => switch (st) {
   'مؤكد' => ('#E8F7EE', OK),
@@ -658,7 +657,7 @@ class Favs extends Scr {
       ], g: 12),
     ];
     return screen(c, [
-      topbar('المفضلة', back: false),
+      topbar('المفضلة', back: Navigator.of(c).canPop()),
       F(
         [
           tabs(
@@ -700,7 +699,7 @@ class Favs extends Scr {
           'الريلز قريباً',
           'حفظ الريلز ومشاهدتها يجهز للزبائن. ماكو محتوى تجريبي بهالقسم.',
         ),
-    ], nav: 'المفضلة');
+    ]);
   }
 }
 
@@ -858,7 +857,7 @@ class Profile extends Scr {
                 (
                   '${repo.follows.length}',
                   'متابَع',
-                  () => onCustomerTab(c, 'المفضلة'),
+                  () => push(c, const Favs()),
                 ),
               ])
                 F(
@@ -878,7 +877,9 @@ class Profile extends Scr {
             bg: G,
           ),
           F([
-            it('store', 'التسوق', 'المتجر والسلة والطلبات', () => push(c, const ShopPage())),
+            it('store', 'التسوق', 'المتجر والسلة والطلبات', () => onCustomerTab(c, 'التسوق')),
+            divider(),
+            it('heart', 'المفضلة', null, () => push(c, const Favs())),
             divider(),
             it(
               'calendar-check',

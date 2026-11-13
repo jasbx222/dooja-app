@@ -67,7 +67,7 @@ N inp(String label, String val, {String? icon, bool ph = false, dynamic w = 'fil
       ], g: 10, bg: G, r: 14, h: 52, w: 'fill', p: [0, 16]),
     ], g: 8, w: w);
 
-Widget field(TextEditingController c, String hint, double s, {TextInputType? kb, TextAlign al = TextAlign.right, int w = 400, ValueChanged<String>? onChanged, TextDirection? dir, FocusNode? focus, int? maxLength}) => TextField(
+Widget field(TextEditingController c, String hint, double s, {TextInputType? kb, TextAlign al = TextAlign.right, int w = 400, ValueChanged<String>? onChanged, TextDirection? dir, FocusNode? focus, int? maxLength, bool obscure = false}) => TextField(
     controller: c,
     focusNode: focus,
     keyboardType: kb,
@@ -75,6 +75,7 @@ Widget field(TextEditingController c, String hint, double s, {TextInputType? kb,
     maxLength: maxLength,
     textDirection: dir,
     onChanged: onChanged,
+    obscureText: obscure,
     cursorColor: col(P),
     style: ts(s, w, INK),
     decoration: InputDecoration(isCollapsed: true, border: InputBorder.none, hintText: hint, counterText: '', hintStyle: ts(s, 400, MU)));
@@ -88,7 +89,7 @@ N meta(String icon, String txt, [String c = MU, double s = 12]) => R([I(icon, 14
 const BARSVG = '<svg xmlns="http://www.w3.org/2000/svg" width="390" height="95" viewBox="0 0 390 95"><path d="M0 40 Q0 16 24 16 H156 C166 16 170 0 191.5 0 C213 0 218 16 228 16 H366 Q390 16 390 40 V95 H0 Z" fill="#FFFFFF" stroke="#ECE9F5" stroke-width="1"/></svg>';
 
 typedef TabItem = (String?, String);
-const NAV = <TabItem>[('house', 'الرئيسية'), ('calendar-check', 'حجوزاتي'), (null, 'اختارلي'), ('heart', 'المفضلة'), ('user', 'حسابي')];
+const NAV = <TabItem>[('house', 'الرئيسية'), ('calendar-check', 'حجوزاتي'), (null, 'اختارلي'), ('store', 'التسوق'), ('user', 'حسابي')];
 const ONAV = <TabItem>[('house', 'الرئيسية'), ('calendar-check', 'الحجوزات'), (null, 'نشر'), ('chart-column', 'الإحصائيات'), ('store', 'مشروعي')];
 
 Widget tabbar(List<TabItem> items, String? active, Widget center, void Function(String) onTab) {

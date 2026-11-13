@@ -211,6 +211,7 @@ class Home extends Scr {
             ),
             WORD(22),
             R([
+              iconbtn('heart', tap: () => push(c, const Favs())),
               cartButton(c),
               iconbtn(
                 'bell',
@@ -277,7 +278,7 @@ class Home extends Scr {
               p: [14, 16],
               r: 18,
               bg: PL,
-              tap: () => push(c, const ShopPage()),
+              tap: () => onCustomerTab(c, 'التسوق'),
             ),
           ],
           w: 'fill',

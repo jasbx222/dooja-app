@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../dsl.dart';
@@ -117,32 +116,40 @@ class Onboard extends Scr {
 const IQFLAG =
     '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="16"><rect width="24" height="5.33" fill="#CE1126"/><rect y="5.33" width="24" height="5.34" fill="#fff"/><rect y="10.67" width="24" height="5.33" fill="#000"/></svg>';
 
+void afterAuth(BuildContext c) {
+  if (repo.role == Role.owner) {
+    resetTo(c, const OwnerHome(), anim: true);
+  } else if (repo.isNewUser) {
+    resetTo(c, const Gov(), anim: true);
+  } else {
+    resetTo(c, const Home(), anim: true);
+  }
+}
+
 class Login extends Scr {
   const Login({super.key});
   @override
   Widget view(c, s) {
-    final ctl = s.ctl('ph');
+    final phone = s.ctl('ph');
+    final pass = s.ctl('pw');
     final busy = s.get('busy', false);
     final err = s.get<String?>('err', null);
-    Future<void> send() async {
-      if (!kDebugMode) {
-        s.set('err', accountPaused);
-        return;
-      }
-      final d = normPhone(ctl.text);
-      if (d == null)
-        return s.set('err', 'دخّل رقم موبايل عراقي صحيح، مثل 0770 000 0001');
+    final hide = s.get('hide', true);
+    Future<void> submit() async {
+      final d = normPhone(phone.text);
+      if (d == null) return s.set('err', 'دخّل رقم موبايل عراقي صحيح، مثل 0770 000 0001');
+      if (pass.text.trim().length < 6) return s.set('err', 'كلمة السر لازم تكون 6 حروف أو أكثر');
       s.set('err', null);
       s.set('busy', true);
       try {
-        await repo.requestOtp(d);
+        await repo.loginWithPassword(d, pass.text);
       } catch (e) {
         s.set('busy', false);
         s.set('err', e.toString());
         return;
       }
       s.set('busy', false);
-      if (c.mounted) push(c, Otp(d));
+      if (c.mounted) afterAuth(c);
     }
 
     return screen(c, [
@@ -150,14 +157,7 @@ class Login extends Scr {
       F(
         [
           T('هلا بيك', 26, 800),
-          T(
-            kDebugMode
-                ? 'دخّل رقم موبايلك ونرسلك رمز تحقق'
-                : 'تسجيل الدخول بالرمز متوقف مؤقتاً',
-            15,
-            400,
-            MU,
-          ),
+          T('سجّل دخول برقم موبايلك وكلمة السر', 15, 400, MU),
         ],
         g: 8,
         w: 'fill',
@@ -182,7 +182,7 @@ class Login extends Scr {
                     [
                       N(
                         field(
-                          ctl,
+                          phone,
                           '770 123 4567',
                           16,
                           kb: TextInputType.phone,
@@ -206,14 +206,45 @@ class Login extends Scr {
                 w: 'fill',
                 ltr: true,
               ),
-              if (err != null) T(err, 12, 500, RD),
             ],
             g: 8,
             w: 'fill',
           ),
-          btn('أرسل الرمز', tap: send, busy: busy),
+          F(
+            [
+              T('كلمة السر', 13, 500, MU),
+              R(
+                [
+                  N(
+                    field(
+                      pass,
+                      '••••••',
+                      16,
+                      obscure: hide,
+                      al: TextAlign.right,
+                    ),
+                    fillW: true,
+                  ),
+                  F(
+                    [I(hide ? 'eye' : 'eye-off', 20, MU)],
+                    tap: () => s.set('hide', !hide),
+                  ),
+                ],
+                g: 10,
+                bg: G,
+                r: 14,
+                h: 52,
+                w: 'fill',
+                p: [0, 16],
+              ),
+            ],
+            g: 8,
+            w: 'fill',
+          ),
+          if (err != null) T(err, 12, 500, RD),
+          btn('تسجيل الدخول', tap: submit, busy: busy),
         ],
-        g: 20,
+        g: 16,
         w: 'fill',
         p: [24, 24],
       ),
@@ -247,37 +278,7 @@ class Login extends Scr {
         w: 'fill',
         p: [0, 24],
       ),
-      if (kDebugMode) ...[
-        BOX(w: 10, h: 16),
-        F(
-          [
-            R([
-              I('info', 14, P),
-              T('تطوير فقط · الرمز 1234', 12, 700, P),
-            ], g: 6),
-            F(
-              [T('زبون: 07700000001', 12, 500, INK)],
-              tap: () {
-                ctl.text = '07700000001';
-                s.set('err', null);
-              },
-            ),
-            F(
-              [T('صاحب مشروع: 07700000002', 12, 500, INK)],
-              tap: () {
-                ctl.text = '07700000002';
-                s.set('err', null);
-              },
-            ),
-          ],
-          g: 4,
-          al: 'c',
-          p: [10, 14],
-          r: 14,
-          bg: BG,
-        ),
-      ],
-      BOX(w: 10, h: 24),
+      BOX(w: 10, h: 16),
       F(
         [
           Tn(
@@ -306,53 +307,68 @@ class Login extends Scr {
   }
 }
 
-const accountPaused =
-    'التحقق برسالة الموبايل متوقف مؤقتاً. ما ننشئ حساب وما نرسل رمز.';
-
 class CreateAccount extends Scr {
   const CreateAccount({super.key});
   @override
   Widget view(c, s) {
     final name = s.ctl('name');
     final phone = s.ctl('ph');
+    final pass = s.ctl('pw');
+    final confirm = s.ctl('pw2');
     final err = s.get<String?>('err', null);
-    final paused = s.get('paused', false);
-    if (paused) {
-      return screen(c, [
-        topbar('إنشاء حساب'),
-        F(
+    final busy = s.get('busy', false);
+    final hide = s.get('hide', true);
+    Future<void> submit() async {
+      if (name.text.trim().length < 2) return s.set('err', 'اكتب اسمك');
+      final d = normPhone(phone.text);
+      if (d == null) return s.set('err', 'دخّل رقم موبايل عراقي صحيح');
+      if (pass.text.trim().length < 6) return s.set('err', 'كلمة السر لازم تكون 6 حروف أو أكثر');
+      if (pass.text != confirm.text) return s.set('err', 'تأكيد كلمة السر ما يطابق');
+      s.set('err', null);
+      s.set('busy', true);
+      try {
+        await repo.register(name.text.trim(), d, pass.text);
+      } catch (e) {
+        s.set('busy', false);
+        s.set('err', e.toString());
+        return;
+      }
+      s.set('busy', false);
+      if (c.mounted) afterAuth(c);
+    }
+
+    Widget secret(String label, TextEditingController ctl, String hint) => F(
+      [
+        T(label, 13, 500, MU),
+        R(
           [
-            BOX(h: 36, w: 1),
-            F(
-              [I('user-plus', 44, P)],
-              al: 'c',
-              jc: 'c',
-              w: 110,
-              h: 110,
-              r: 32,
-              bg: PL,
+            N(
+              field(ctl, hint, 16, obscure: hide, al: TextAlign.right),
+              fillW: true,
             ),
-            Tn('إنشاء الحساب متوقف مؤقتاً', s: 22, w: 800, al: 'CENTER'),
-            Tn(accountPaused, s: 14, c: MU, al: 'CENTER', w2: 300, lh: 22),
-            btn(
-              'عندي حساب',
-              kind: 'g',
-              tap: () => replace(c, const Login()),
+            F(
+              [I(hide ? 'eye' : 'eye-off', 20, MU)],
+              tap: () => s.set('hide', !hide),
             ),
           ],
-          g: 16,
-          al: 'c',
+          g: 10,
+          bg: G,
+          r: 14,
+          h: 52,
           w: 'fill',
-          p: [0, 24],
+          p: [0, 16],
         ),
-      ]);
-    }
+      ],
+      g: 8,
+      w: 'fill',
+    );
+
     return screen(c, [
       topbar('إنشاء حساب', back: Navigator.of(c).canPop()),
       F(
         [
           T('أنشئ حسابك', 26, 800),
-          T('الاسم ورقم الموبايل يكفون للبداية', 15, 400, MU),
+          T('الاسم ورقم الموبايل وكلمة السر تكفي للبداية', 15, 400, MU),
         ],
         g: 8,
         w: 'fill',
@@ -425,22 +441,10 @@ class CreateAccount extends Scr {
             g: 8,
             w: 'fill',
           ),
+          secret('كلمة السر', pass, '6 حروف أو أكثر'),
+          secret('تأكيد كلمة السر', confirm, 'أعد كتابة كلمة السر'),
           if (err != null) T(err, 12, 500, RD),
-          btn(
-            'إنشاء الحساب',
-            tap: () {
-              if (name.text.trim().length < 2) {
-                s.set('err', 'اكتب اسمك');
-                return;
-              }
-              if (normPhone(phone.text) == null) {
-                s.set('err', 'دخّل رقم موبايل عراقي صحيح');
-                return;
-              }
-              s.set('err', null);
-              s.set('paused', true);
-            },
-          ),
+          btn('إنشاء الحساب', tap: submit, busy: busy),
           F(
             [
               Tn(

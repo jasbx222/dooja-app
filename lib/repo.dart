@@ -265,7 +265,7 @@ class Repo extends ChangeNotifier {
   final reels = <Reel>[];
   final bookings = <Booking>[];
   final notifs = <Notif>[];
-  bool shopEnabled = true, shopLoading = false;
+  bool shopEnabled = true, shopHydrated = false, shopLoading = false;
   String? shopError;
   int shopDeliveryFee = 0, shopMinOrder = 0, shopPage = 1, shopTotal = 0;
   int cartSubtotal = 0, cartDiscount = 0;
@@ -539,7 +539,18 @@ class Repo extends ChangeNotifier {
   }
 
   Future<Role> login(String ph, String code) async {
-    final m = await api.post('auth/verify', {'phone': ph, 'code': code}) as Map;
+    return _acceptAuth(await api.post('auth/verify', {'phone': ph, 'code': code}) as Map);
+  }
+
+  Future<Role> loginWithPassword(String ph, String password) async {
+    return _acceptAuth(await api.post('auth/login', {'phone': ph, 'password': password}) as Map);
+  }
+
+  Future<Role> register(String name, String ph, String password) async {
+    return _acceptAuth(await api.post('auth/register', {'name': name, 'phone': ph, 'password': password}) as Map);
+  }
+
+  Future<Role> _acceptAuth(Map m) async {
     await api.saveToken(str(m, 'token'));
     profile(m['user'] as Map);
     await _mergeGuest();
@@ -959,6 +970,7 @@ class Repo extends ChangeNotifier {
       if (page <= 1) shopProducts.clear();
     } finally {
       shopLoading = false;
+      shopHydrated = true;
       touch();
     }
   }

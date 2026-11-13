@@ -37,6 +37,7 @@ public static class ShopSchema
             await using var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync()) existing.Add(reader.GetString(0));
         }
+        await EnsureUserColumns(db, conn, pg);
         if (existing.Contains("Products")) return;
         var script = db.Database.GenerateCreateScript();
         foreach (var statement in Split(script))
@@ -45,6 +46,22 @@ public static class ShopSchema
             if (!statement.StartsWith("CREATE", StringComparison.OrdinalIgnoreCase)) continue;
             await db.Database.ExecuteSqlRawAsync(statement);
         }
+    }
+
+    static async Task EnsureUserColumns(DoojaDb db, System.Data.Common.DbConnection conn, bool pg)
+    {
+        var has = false;
+        await using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = pg
+                ? "SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Users' AND column_name = 'PasswordHash'"
+                : "SELECT 1 FROM pragma_table_info('Users') WHERE name = 'PasswordHash'";
+            has = await cmd.ExecuteScalarAsync() != null;
+        }
+        if (has) return;
+        await db.Database.ExecuteSqlRawAsync(pg
+            ? "ALTER TABLE \"Users\" ADD COLUMN \"PasswordHash\" text"
+            : "ALTER TABLE \"Users\" ADD COLUMN \"PasswordHash\" TEXT");
     }
 
     static IEnumerable<string> Split(string script)

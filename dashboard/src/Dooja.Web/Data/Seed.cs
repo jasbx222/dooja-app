@@ -8,6 +8,7 @@ public static class Seed
     {
         await ShopSchema.Apply(db);
         await new ShopService(db, Microsoft.Extensions.Logging.Abstractions.NullLogger<ShopService>.Instance, config).EnsureDefaults();
+        await ShopCatalogSeed.Ensure(db);
         if (!db.Users.Any(x => x.Role == "Admin"))
         {
             var password = config["Admin:Password"];
@@ -87,6 +88,5 @@ new Place{Id="p12",ImageKey="gaming",Name="كيدز لاند",Type="أنشطة �
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
         }
-        await ShopCatalogSeed.Ensure(db);
     }
 }

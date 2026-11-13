@@ -10,6 +10,7 @@ import 'screens/home.dart';
 import 'screens/flow.dart';
 import 'screens/more.dart';
 import 'screens/owner.dart';
+import 'screens/shop.dart';
 
 final navKey = GlobalKey<NavigatorState>();
 
@@ -36,8 +37,10 @@ Future<void> main() async {
         resetTo(c, const Bookings());
       case 'اختارلي':
         push(c, const PickQ());
+      case 'التسوق':
+        resetTo(c, const ShopPage());
       case 'المفضلة':
-        resetTo(c, const Favs());
+        push(c, const Favs());
       case 'حسابي':
         resetTo(c, const Profile());
       case '__login':

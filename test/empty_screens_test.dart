@@ -9,6 +9,7 @@ import 'package:dooja/screens/home.dart';
 import 'package:dooja/screens/more.dart';
 import 'package:dooja/screens/owner.dart';
 import 'package:dooja/screens/place.dart';
+import 'package:dooja/screens/shop.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -24,6 +25,8 @@ void main() {
     tester,
   ) async {
     repo.homeLoaded = true;
+    repo.shopHydrated = true;
+    repo.shopEnabled = true;
     onCustomerTab = (_, __) {};
     onOwnerTab = (_, __) {};
     for (final widget in <Widget>[
@@ -36,6 +39,8 @@ void main() {
       const Offers(),
       const Reels(),
       const Favs(),
+      const ShopPage(),
+      const Login(),
       const Notifs(),
       const OwnerHome(),
       const OBookings(),
@@ -68,6 +73,14 @@ void main() {
       }
       if (widget is CreateAccount) {
         expect(find.text('أنشئ حسابك'), findsOneWidget);
+        expect(find.text('كلمة السر'), findsOneWidget);
+      }
+      if (widget is Login) {
+        expect(find.text('هلا بيك'), findsOneWidget);
+        expect(find.text('كلمة السر'), findsOneWidget);
+      }
+      if (widget is ShopPage) {
+        expect(find.text('التسوق'), findsWidgets);
       }
       await tester.pumpWidget(const SizedBox());
     }
