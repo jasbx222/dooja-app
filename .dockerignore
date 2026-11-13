@@ -1,0 +1,11 @@
+# The root Dockerfile only needs the backend sources.
+*
+!dashboard/src/
+**/bin/
+**/obj/
+**/*.db
+**/*.db-shm
+**/*.db-wal
+**/appsettings.Development.json
+**/appsettings.Local.json
+**/wwwroot/uploads/
