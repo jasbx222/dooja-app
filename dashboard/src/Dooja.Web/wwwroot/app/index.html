@@ -3,7 +3,7 @@
 <head>
   <!--
     Base href is replaced by `flutter build --base-href`.
-    Served under https://dooja.cloudapps.trade/app/
+    Served under /app/ by the backend (https://dooja-app.onrender.com/app/).
   -->
   <base href="/app/">
 
@@ -56,6 +56,15 @@
       var boot = document.getElementById('boot');
       if (boot) boot.remove();
     });
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('sw.js', { scope: './' }).catch(function (e) {
+          console.warn('Service worker registration failed', e);
+        });
+      });
+    }
   </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>

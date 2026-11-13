@@ -15,7 +15,7 @@ else
   exit 1
 fi
 cd "$APP_ROOT"
-API_BASE_URL="${API_BASE_URL:-https://dooja.cloudapps.trade}"
+API_BASE_URL="${API_BASE_URL:-https://dooja-app.onrender.com}"
 flutter build web --release --base-href /app/ --dart-define="API_BASE_URL=$API_BASE_URL"
 DEST="$DASH_ROOT/src/Dooja.Web/wwwroot/app"
 rm -rf "$DEST"

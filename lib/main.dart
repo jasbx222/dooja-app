@@ -15,6 +15,7 @@ final navKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  repo.api.warmUp();
   await loadIcons();
   for (final f in [
     'tab_center_infinity_white',

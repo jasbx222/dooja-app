@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
@@ -12,13 +11,17 @@ class ApiException implements Exception {
   String toString() => message;
 }
 
-/// Override with --dart-define=API_BASE_URL=https://api.example.com.
-/// Android emulator: http://10.0.2.2:5080; physical devices need a reachable host.
+/// Defaults to the hosted backend on Render.
+/// Override with --dart-define=API_BASE_URL=https://api.example.com
+/// (local API: http://127.0.0.1:5080, Android emulator: http://10.0.2.2:5080).
 class ApiClient {
   static const configuredUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: kDebugMode ? 'http://127.0.0.1:5080' : '',
+    defaultValue: 'https://dooja-app.onrender.com',
   );
+
+  /// The free Render instance sleeps when idle and needs up to ~50s to wake.
+  static const requestTimeout = Duration(seconds: 60);
   final String baseUrl;
   final http.Client client;
   final FlutterSecureStorage storage;
@@ -66,7 +69,7 @@ class ApiClient {
       res = await client
           .send(req)
           .then(http.Response.fromStream)
-          .timeout(const Duration(seconds: 20));
+          .timeout(requestTimeout);
     } catch (_) {
       throw const ApiException(
         'تعذر الاتصال بالخادم. تحقق من الإنترنت وعنوان API',
@@ -93,6 +96,16 @@ class ApiClient {
       );
     }
     return data;
+  }
+
+  /// Wakes a sleeping server early so the first real request is fast.
+  Future<void> warmUp() async {
+    if (baseUrl.isEmpty) return;
+    try {
+      await client
+          .get(Uri.parse('${baseUrl.replaceAll(RegExp(r'/+$'), '')}/health'))
+          .timeout(requestTimeout);
+    } catch (_) {}
   }
 
   Future<dynamic> get(String path) => request('GET', path);
