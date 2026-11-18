@@ -19,11 +19,8 @@ N WORD([double h = 26, String c = INK, String acc = P, bool sub = true]) {
   return N(SvgPicture.asset(c == WH ? 'assets/logo/lockup_white.svg' : 'assets/logo/lockup_color.svg', height: hh, width: (hh * 562.25 / 534.25).roundToDouble()));
 }
 
-Widget status([bool dark = false]) => Builder(builder: (ctx) {
-      if (!isWebPreview) return SizedBox(height: MediaQuery.of(ctx).padding.top + 8);
-      final c = dark ? WH : INK;
-      return R([T('9:41', 15, 700, c), R([I('signal', 16, c), I('wifi', 16, c), I('battery-full', 22, c)], g: 5, ltr: true)], jc: 'sb', ltr: true, w: 'fill', p: [14, 26, 6, 26]);
-    });
+/// Top spacing under the device's real status bar (no drawn mock bar).
+Widget status([bool dark = false]) => Builder(builder: (ctx) => SizedBox(height: MediaQuery.of(ctx).padding.top + 8));
 
 N btn(String label, {String? icon, String kind = 'p', dynamic w = 'fill', double h = 52, VoidCallback? tap, bool busy = false}) {
   final bgc = {'p': P, 's': PL, 'g': G, 'w': WH, 'o': null, 'd': '#FDECEC'}[kind];
@@ -110,7 +107,6 @@ Widget tabbar(List<TabItem> items, String? active, Widget center, void Function(
         Positioned(left: 0, top: 0, child: S(BARSVG, 390, 95)),
         Positioned(left: 0, top: 24, child: R(kids, jc: 'sb', al: 's', w: 390, p: [0, 20])),
         Positioned(left: 166.5, top: 15, child: F([center], al: 'c', jc: 'c', w: 50, h: 50, r: 25, bg: P, tap: () => onTab(centerLabel))),
-        Positioned(left: 128, top: 83, child: BOX(w: 134, h: 5, r: 3, bg: INK)),
       ]));
 }
 

@@ -4,8 +4,6 @@ import '../dsl.dart';
 import '../common.dart';
 import '../app.dart';
 import '../repo.dart';
-import 'home.dart';
-import 'more.dart';
 import 'place.dart';
 
 class PickPrefs {
@@ -42,7 +40,6 @@ List<(Place, List<(String, String)>)> pickResults(int shuffle) {
         p,
         [
           ('wallet', 'ضمن ميزانيتك'),
-          if (km(p) < 3) ('navigation', 'قريب منك ${p.dist}'),
           if (p.kind == 'slots')
             ('calendar-check', 'تحقق من الموعد عند الحجز')
           else
@@ -64,19 +61,6 @@ class PickQ extends Scr {
   Widget view(c, s) {
     final pp = pickPrefs;
     final busy = s.get('busy', false);
-    Widget q(String icon, String lab, String val) => R(
-      [
-        R([I(icon, 20, P), T(lab, 15, 700)], g: 10),
-        R([T(val, 14, 500, MU), I('chevron-left', 18, MU)], g: 6),
-      ],
-      jc: 'sb',
-      w: 'fill',
-      p: [16, 16],
-      r: 16,
-      bg: WH,
-      sk: LN,
-      tap: () => toast(c, 'تكدر تغيّر $lab من هنا'),
-    );
     Widget grp(String t, List<Widget> k) =>
         F([T(t, 14, 800), R(k, g: 8)], g: 10, w: 'fill');
     return screen(
@@ -137,17 +121,6 @@ class PickQ extends Scr {
             ]),
           ],
           g: 18,
-          w: 'fill',
-          p: [8, 20],
-        ),
-        F(
-          [
-            q('map-pin', 'الموقع', '${repo.area} · لحد 5 كم'),
-            q('clock', 'الوقت', 'اليوم · 8 بالليل'),
-            q('hourglass', 'المدة', 'ساعتين'),
-            q('layout-grid', 'النشاط', 'بادل، بليارد، ألعاب'),
-          ],
-          g: 10,
           w: 'fill',
           p: [8, 20],
         ),
@@ -310,7 +283,7 @@ class PickEmpty extends Scr {
           ),
           Tn('ما لگينا مكان يطابق كل اختياراتك', s: 19, w: 800, al: 'CENTER'),
           Tn(
-            'جرّب توسّع المسافة أو تغيّر الميزانية، أو خلّينا نقترح أقرب شي',
+            'جرّب تغيّر الجو أو ترفع الميزانية',
             s: 14,
             c: MU,
             al: 'CENTER',
@@ -320,7 +293,7 @@ class PickEmpty extends Scr {
           F(
             [
               R(
-                [T('وسّع المسافة لـ 10 كم', 14, 700), I('navigation', 18, P)],
+                [T('أي جو يناسبني', 14, 700), I('sparkle', 18, P)],
                 g: 8,
                 jc: 'sb',
                 w: 'fill',
@@ -404,9 +377,18 @@ class Draft {
       ? 0
       : base - offer!.newP * (p.unit == 'ساعة' ? dur + 1 : people);
   int get total => base - disc;
-  String get end {
-    final h = 18 + slot + dur + 1;
-    return '${(h % 24).toString().padLeft(2, '0')}:00';
+  /// Booking window in the same 12-hour Arabic style as the slot buttons,
+  /// e.g. "8:00 - 10:00 م" (end can pass midnight: "11:00 م - 1:00 ص").
+  String get window {
+    String fmt12(int h) {
+      final hh = h % 24, d = hh % 12 == 0 ? 12 : hh % 12;
+      return '$d:00 ${hh < 12 ? 'ص' : 'م'}';
+    }
+    final start = 18 + slot, stop = start + dur + 1;
+    final a = fmt12(start), b = fmt12(stop);
+    return a.endsWith(b.substring(b.length - 1))
+        ? '${a.substring(0, a.length - 2)} - $b'
+        : '$a - $b';
   }
 
   String get dayShort => DAYS[day].$3.split(' ').take(2).join(' ');
@@ -436,9 +418,12 @@ class BookSlot extends Scr {
         ..offer = offer,
     );
     final occupied = repo.occupied(id, isoDay(d.day));
+    // Baghdad is UTC+3 all year; today's slots that already started are closed.
+    final nowHour = DateTime.now().toUtc().add(const Duration(hours: 3)).hour;
     final full = {
       for (var i = 0; i < SLOTS.length; i++)
-        if (18 + i + d.dur + 1 > 24 ||
+        if ((d.day == 0 && 18 + i <= nowHour) ||
+            18 + i + d.dur + 1 > 24 ||
             List.generate(d.dur + 1, (j) => 18 + i + j).any(occupied.contains))
           i,
     };
@@ -654,7 +639,7 @@ class BookPay extends Scr {
                     T(d.p.name, 15, 800),
                     meta(
                       'calendar',
-                      '${DAYS[d.day].$3} · ${SLOTS[d.slot].replaceAll(' م', '')} - ${d.end}',
+                      '${DAYS[d.day].$3} · ${d.window}',
                     ),
                     meta('users', '${d.people} أشخاص'),
                   ], g: 4),
@@ -681,11 +666,7 @@ class BookPay extends Scr {
               ),
             T('طريقة الدفع', 15, 800),
             pm('cash', 'banknote', 'كاش بالمكان', 'ادفع لما توصل'),
-            Tn(
-              'الدفع الإلكتروني غير مربوط؛ المتاح كاش بالمكان فقط.',
-              s: 13,
-              c: MU,
-            ),
+            Tn('تدفع كاش بالمكان لما توصل.', s: 13, c: MU),
             card([
               R(
                 [
@@ -810,7 +791,7 @@ class BookDone extends Scr {
               R(
                 [
                   T(
-                    '${d.dayShort} · ${SLOTS[d.slot].replaceAll(' م', '')} - ${d.end}',
+                    '${d.dayShort} · ${d.window}',
                     14,
                     700,
                   ),
@@ -842,23 +823,11 @@ class BookDone extends Scr {
       ),
     ],
     bottomBar: bottom([
-      R(
-        [
-          btn(
-            'أضف للتقويم',
-            icon: 'calendar',
-            kind: 'g',
-            tap: () => toast(c, 'التقويم غير مربوط حالياً'),
-          ),
-          btn(
-            'ادعُ أصحابك',
-            icon: 'user-plus',
-            kind: 's',
-            tap: () => push(c, Group(b)),
-          ),
-        ],
-        g: 10,
-        w: 'fill',
+      btn(
+        'حجوزاتي',
+        icon: 'calendar-check',
+        kind: 's',
+        tap: () => onCustomerTab(c, 'حجوزاتي'),
       ),
       btn('رجوع للرئيسية', kind: 'o', tap: () => onCustomerTab(c, 'الرئيسية')),
     ]),
@@ -877,7 +846,7 @@ class Waitlist extends Scr {
       F(
         [
           Tn(
-            'إرسال طلب انتظار للموعد المحدد. ترتيب القائمة والتنبيهات التلقائية غير مدعومة حالياً.',
+            'نسجّلك بقائمة الانتظار لهذا الموعد، وإذا تأكد حجزك توصلك إشعار.',
             s: 14,
             c: MU,
           ),
@@ -912,23 +881,4 @@ class Waitlist extends Scr {
       ),
     ]),
   );
-}
-
-class ErrorBook extends Scr {
-  const ErrorBook({super.key});
-  @override
-  Widget view(c, s) => screen(c, [
-    topbar('الدفع'),
-    F(
-      [
-        Tn(
-          'الدفع الإلكتروني غير مربوط حالياً. لم يتم حجز موعد أو خصم مبلغ.',
-          s: 16,
-          c: MU,
-        ),
-      ],
-      p: 24,
-      w: 'fill',
-    ),
-  ]);
 }

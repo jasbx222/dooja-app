@@ -227,7 +227,6 @@ class Repo extends ChangeNotifier {
   Repo.forTesting(this.api);
   final ApiClient api;
   final _detailIds = <String>{};
-  static const demoCustomer = '07700000001', demoOwner = '07700000002';
   Role role = Role.none;
   bool get authenticated => api.token != null;
   bool get isOwner => serverRole == 'Owner' || serverRole == 'Admin';
@@ -534,14 +533,6 @@ class Repo extends ChangeNotifier {
     }
   }
 
-  Future<void> requestOtp(String ph) async {
-    await api.post('auth/request-otp', {'phone': ph});
-  }
-
-  Future<Role> login(String ph, String code) async {
-    return _acceptAuth(await api.post('auth/verify', {'phone': ph, 'code': code}) as Map);
-  }
-
   Future<Role> loginWithPassword(String ph, String password) async {
     return _acceptAuth(await api.post('auth/login', {'phone': ph, 'password': password}) as Map);
   }
@@ -556,6 +547,19 @@ class Repo extends ChangeNotifier {
     await _mergeGuest();
     await refresh();
     return role;
+  }
+
+  /// Deletes the account on the server, then clears the session locally.
+  Future<bool> deleteAccount() async {
+    try {
+      await api.delete('auth/me');
+    } catch (e) {
+      error = e.toString();
+      touch();
+      return false;
+    }
+    await logout();
+    return true;
   }
 
   Future<void> logout() async {

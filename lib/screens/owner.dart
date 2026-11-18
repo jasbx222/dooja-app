@@ -36,7 +36,7 @@ class OIntro extends Scr {
   Widget view(c, s) => noIntegration(
     c,
     'سجّل مشروعك',
-    'تسجيل المالك يحتاج موافقة الإدارة من الداشبورد. ما نقدر نغيّر صلاحية الحساب من التطبيق.',
+    'حتى تسجّل مشروعك على ضوجة تواصل ويا إدارة ضوجة، وهي تفعّل لك حساب صاحب المكان.',
   );
 }
 
@@ -66,11 +66,7 @@ class OInfo extends Scr {
           inp('السعر بالدينار', '', ctl: price, kb: TextInputType.number),
           inp('الوحدة', '', ctl: unit),
           inp('الهاتف', '', ctl: phone),
-          Tn(
-            'صور المشروع تستخدم مفتاح الصورة الحالي. رفع ملفات وصور فعلية غير مربوط.',
-            s: 13,
-            c: MU,
-          ),
+          Tn('صورة المشروع تتغير من إدارة ضوجة.', s: 13, c: MU),
           if (!creating)
             btn('إنشاء مشروع آخر', kind: 'g', tap: () => s.set('new', true)),
         ]),
@@ -109,46 +105,6 @@ class OInfo extends Scr {
       ]),
     );
   }
-}
-
-class OLoc extends Scr {
-  const OLoc({super.key});
-  @override
-  Widget view(c, s) => noIntegration(
-    c,
-    'موقع المشروع',
-    'إحداثيات GPS والخريطة الحية غير مربوطة. عدّل المنطقة من معلومات المشروع.',
-  );
-}
-
-class OHours extends Scr {
-  const OHours({super.key});
-  @override
-  Widget view(c, s) => noIntegration(
-    c,
-    'التواصل والدوام',
-    'عدّل الهاتف من معلومات المشروع، وأغلق الأوقات من المواعيد. ساعات الدوام التفصيلية غير مدعومة في API الحالي.',
-  );
-}
-
-class OMedia extends Scr {
-  const OMedia({super.key});
-  @override
-  Widget view(c, s) => noIntegration(
-    c,
-    'الصور والفيديو',
-    'رفع الصور والفيديو والتخزين غير مربوط حالياً. لن نظهر رفعاً وهمياً.',
-  );
-}
-
-class OPending extends Scr {
-  const OPending({super.key});
-  @override
-  Widget view(c, s) => noIntegration(
-    c,
-    'حالة الطلب',
-    'لا يوجد مسار API لطلبات تسجيل المشاريع حالياً. تواصل مع الإدارة.',
-  );
 }
 
 class OwnerHome extends Scr {
@@ -268,11 +224,7 @@ Future<void> rejectSheet(BuildContext c, OwnerReq r) => openSheet(
   c,
   title: 'إلغاء الحجز',
   body: (sc, set) => [
-    Tn(
-      'يتغير الحجز إلى ملغي. إرسال سبب أو موعد بديل غير مدعوم حالياً.',
-      s: 14,
-      c: MU,
-    ),
+    Tn('يتغير الحجز إلى ملغي ويوصل للزبون إشعار.', s: 14, c: MU),
     btn(
       'تأكيد الإلغاء',
       kind: 'd',
@@ -299,11 +251,7 @@ class OScan extends Scr {
     return screen(c, [
       topbar('تسجيل الوصول'),
       body([
-        Tn(
-          'المسح بالكاميرا غير مربوط. أدخل رمز الحجز كاملاً للتحقق من الحجز الحقيقي.',
-          s: 14,
-          c: MU,
-        ),
+        Tn('اكتب رمز الحجز اللي يعرضه الزبون حتى تسجّل وصوله.', s: 14, c: MU),
         inp('رمز الحجز', 'DJ-...', ctl: code),
         btn('بحث', tap: () => s.set('search', true)),
         if (s.get('search', false)) ...[
@@ -419,11 +367,7 @@ class OInsights extends Scr {
         g: 8,
         w: 'fill',
       ),
-      Tn(
-        'إحصائيات الزيارات والمصادر والفترات غير متاحة في API الحالي. الدخل ليس تسوية مدفوعات.',
-        s: 14,
-        c: MU,
-      ),
+      Tn('الدخل محسوب من الحجوزات المكتملة أو اللي وصل أصحابها.', s: 14, c: MU),
       btn('أداء العروض', tap: () => push(c, const OOffPerf())),
       btn('تحديث', kind: 'g', tap: () => repo.refresh()),
     ]),
@@ -474,13 +418,6 @@ Future<void> postSheet(BuildContext c) => openSheet(
       tap: () {
         Navigator.pop(sc);
         push(c, const OOffer());
-      },
-    ),
-    btn(
-      'ريل · قريباً',
-      tap: () {
-        Navigator.pop(sc);
-        push(c, const OReel());
       },
     ),
     btn(
@@ -547,16 +484,6 @@ class OOffer extends Scr {
   }
 }
 
-class OReel extends Scr {
-  const OReel({super.key});
-  @override
-  Widget view(c, s) => noIntegration(
-    c,
-    'ريلز المشروع',
-    'نشر الريلز قريباً. رفع الفيديو غير مفعّل، وما ننشر صورة المشروع بدل الريل.',
-  );
-}
-
 class OProject extends Scr {
   const OProject({super.key});
   @override
@@ -569,7 +496,6 @@ class OProject extends Scr {
       btn('الخدمات والأسعار', kind: 'g', tap: () => push(c, const OServices())),
       btn('المواعيد', kind: 'g', tap: () => push(c, const OCal())),
       btn('التقييمات', kind: 'g', tap: () => push(c, const OReviews())),
-      btn('الصور والفيديو', kind: 'g', tap: () => push(c, const OMedia())),
       btn('حساب الزبون', kind: 'g', tap: () => onCustomerTab(c, 'الرئيسية')),
       btn(
         'تسجيل الخروج',
@@ -699,14 +625,4 @@ class OReviews extends Scr {
         ),
     ]),
   ], onavTab: 'مشروعي');
-}
-
-class OStaff extends Scr {
-  const OStaff({super.key});
-  @override
-  Widget view(c, s) => noIntegration(
-    c,
-    'الموظفون',
-    'إدارة الموظفين والصلاحيات غير مدعومة في API الحالي.',
-  );
 }

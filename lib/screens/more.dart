@@ -227,14 +227,14 @@ class BookingDetail extends Scr {
                 icon: 'navigation',
                 kind: 's',
                 h: 46,
-                tap: () => toast(c, 'يفتح الخريطة على ${p.area}'),
+                tap: () => openMaps(c, p.name, p.area),
               ),
               btn(
                 'اتصال',
                 icon: 'phone',
                 kind: 'g',
                 h: 46,
-                tap: () => toast(c, 'يتصل بـ ${p.phone}'),
+                tap: () => callPhone(c, p.phone),
               ),
             ],
             g: 10,
@@ -355,7 +355,6 @@ class Rate extends Scr {
               r: 16,
               bg: G,
             ),
-            Tn('رفع صور التقييم غير مربوط حالياً', s: 12, c: MU),
           ],
           g: 16,
           w: 'fill',
@@ -712,11 +711,7 @@ class Rewards extends Scr {
       [
         T('نقاطك', 16, 700),
         T(fmt(repo.points), 36, 800, P),
-        Tn(
-          'النقاط من حسابك في الخادم. الاستبدال والتحديات والدعوات غير مدعومة حالياً.',
-          s: 14,
-          c: MU,
-        ),
+        Tn('تجمع 20 نقطة على كل تقييم تكتبه لحجز مكتمل.', s: 14, c: MU),
       ],
       g: 16,
       p: 24,
@@ -781,28 +776,6 @@ class Notifs extends Scr {
   }
 }
 
-class Group extends Scr {
-  final Booking? b;
-  const Group([this.b]);
-  @override
-  Widget view(c, s) => screen(c, [
-    topbar('طلعة جماعية'),
-    F(
-      [
-        if (b != null) T('الحجز ${b!.code}', 16, 700),
-        Tn(
-          'الدعوات وتقسيم الدفعات والمجموعات غير مدعومة في API الحالي. ماكو أعضاء أو دفعات وهمية.',
-          s: 14,
-          c: MU,
-        ),
-      ],
-      g: 14,
-      p: 24,
-      w: 'fill',
-    ),
-  ]);
-}
-
 class Profile extends Scr {
   const Profile({super.key});
   @override
@@ -815,7 +788,7 @@ class Profile extends Scr {
       jc: 'sb',
       w: 'fill',
       p: [14, 0],
-      tap: tap ?? () => toast(c, 'قريباً'),
+      tap: tap,
     );
     final upcoming = repo.bookings.where((b) => b.status == 'مؤكد').length;
     return screen(c, [
@@ -877,7 +850,12 @@ class Profile extends Scr {
             bg: G,
           ),
           F([
-            it('store', 'التسوق', 'المتجر والسلة والطلبات', () => onCustomerTab(c, 'التسوق')),
+            it(
+              'store',
+              'التسوق',
+              'المتجر والسلة والطلبات',
+              () => onCustomerTab(c, 'التسوق'),
+            ),
             divider(),
             it('heart', 'المفضلة', null, () => push(c, const Favs())),
             divider(),
@@ -888,16 +866,7 @@ class Profile extends Scr {
               () => onCustomerTab(c, 'حجوزاتي'),
             ),
             divider(),
-            it('users', 'طلعاتي الجماعية', null, () => push(c, const Group())),
-            divider(),
             it('star', 'تقييماتي', null, () => push(c, const MyReviews())),
-            divider(),
-            it(
-              'user-plus',
-              'ادعُ أصحابك',
-              'غير مربوط',
-              () => push(c, const Rewards()),
-            ),
             divider(),
             it(
               'store',
@@ -908,24 +877,10 @@ class Profile extends Scr {
           ], w: 'fill'),
           F([
             it(
-              'globe',
-              'اللغة',
-              'العربية',
-              () => toast(c, 'الإنكليزي والكردي قريباً'),
-            ),
-            divider(),
-            it(
               'map-pin',
               'المحافظة',
               repo.gov,
               () => push(c, const Gov(fromSettings: true)),
-            ),
-            divider(),
-            it(
-              'circle-help',
-              'المساعدة والدعم',
-              null,
-              () => toast(c, 'قناة الدعم غير مهيأة حالياً'),
             ),
           ], w: 'fill'),
         ],
@@ -975,17 +930,6 @@ class Edit extends Scr {
                       r: 48,
                       bg: PL,
                     ),
-                    F(
-                      [I('camera', 16, WH)],
-                      al: 'c',
-                      jc: 'c',
-                      w: 32,
-                      h: 32,
-                      r: 16,
-                      bg: P,
-                      ab: [64, 64],
-                      tap: () => toast(c, 'رفع صورة الحساب غير مربوط'),
-                    ),
                   ],
                   w: 96,
                   h: 96,
@@ -995,13 +939,7 @@ class Edit extends Scr {
               al: 'c',
             ),
             inp('الاسم', '', ctl: n),
-            inp(
-              'رقم الموبايل',
-              phoneFmt(repo.phone),
-              lead: F([
-                T('تغيير', 13, 700, P),
-              ], tap: () => toast(c, 'تغيير رقم الموبايل غير مدعوم حالياً')),
-            ),
+            inp('رقم الموبايل', phoneFmt(repo.phone)),
             inp('تاريخ الميلاد', '', icon: 'calendar', ctl: b),
             inp('المحافظة', '', ctl: g),
             inp('المنطقة', '', icon: 'map-pin', ctl: a),
@@ -1046,7 +984,7 @@ class Settings extends Scr {
     F(
       [
         Tn(
-          'تفضيلات الإشعارات والموقع والوضع الداكن وحذف الحساب غير مدعومة في API الحالي. الإشعارات داخل التطبيق تُقرأ من الخادم؛ لا توجد خدمة Push مفعلة.',
+          'تلگه تحديثات حجوزاتك وطلباتك بصفحة الإشعارات داخل التطبيق.',
           s: 14,
           c: MU,
         ),
@@ -1059,6 +997,33 @@ class Settings extends Scr {
             await repo.logout();
             if (c.mounted) resetTo(c, const Login(), anim: true);
           },
+        ),
+        btn(
+          'حذف الحساب',
+          kind: 'd',
+          tap: () => openSheet(
+            c,
+            title: 'حذف الحساب',
+            body: (sc, set) => [
+              Tn(
+                'ينحذف اسمك ورقمك وكلمة السر ومفضلتك ونقاطك، وتنلغي حجوزاتك القادمة. ما تكدر ترجّع الحساب بعدين.',
+                s: 14,
+                c: MU,
+              ),
+              btn(
+                'احذف حسابي نهائياً',
+                kind: 'd',
+                tap: () async {
+                  if (await apiAction(c, repo.deleteAccount(), 'انحذف حسابك') &&
+                      c.mounted) {
+                    if (sc.mounted) Navigator.pop(sc);
+                    resetTo(c, const Login(), anim: true);
+                  }
+                },
+              ),
+              btn('تراجع', kind: 'g', tap: () => Navigator.pop(sc)),
+            ],
+          ),
         ),
       ],
       g: 20,
@@ -1088,8 +1053,7 @@ class Offline extends Scr {
           ),
           Tn('ماكو اتصال بالإنترنت', s: 20, w: 800, al: 'CENTER'),
           Tn(
-            repo.error ??
-                'تعذر الاتصال بالخادم. ما نعرض بيانات وهمية أو محفوظة قديمة.',
+            repo.error ?? 'ما كدرنا نتصل. تأكد من الإنترنت وجرّب مرة ثانية.',
             s: 14,
             c: MU,
             al: 'CENTER',

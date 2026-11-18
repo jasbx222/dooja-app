@@ -64,11 +64,14 @@ class Onboard extends Scr {
   Widget view(c, s) {
     final i = s.get('i', 0);
     final pg = pages[i];
-    void next() => i < 2 ? s.set('i', i + 1) : replace(c, const CreateAccount());
+    void next() =>
+        i < 2 ? s.set('i', i + 1) : replace(c, const CreateAccount());
     return screen(c, [
       R(
         [
-          F([T('تخطي', 14, 700, MU)], tap: () => replace(c, const CreateAccount())),
+          F([
+            T('تخطي', 14, 700, MU),
+          ], tap: () => replace(c, const CreateAccount())),
         ],
         jc: 'e',
         w: 'fill',
@@ -137,8 +140,10 @@ class Login extends Scr {
     final hide = s.get('hide', true);
     Future<void> submit() async {
       final d = normPhone(phone.text);
-      if (d == null) return s.set('err', 'دخّل رقم موبايل عراقي صحيح، مثل 0770 000 0001');
-      if (pass.text.trim().length < 6) return s.set('err', 'كلمة السر لازم تكون 6 حروف أو أكثر');
+      if (d == null)
+        return s.set('err', 'دخّل رقم موبايل عراقي صحيح، مثل 0770 000 0001');
+      if (pass.text.trim().length < 6)
+        return s.set('err', 'كلمة السر لازم تكون 6 حروف أو أكثر');
       s.set('err', null);
       s.set('busy', true);
       try {
@@ -225,10 +230,9 @@ class Login extends Scr {
                     ),
                     fillW: true,
                   ),
-                  F(
-                    [I(hide ? 'eye' : 'eye-off', 20, MU)],
-                    tap: () => s.set('hide', !hide),
-                  ),
+                  F([
+                    I(hide ? 'eye' : 'eye-off', 20, MU),
+                  ], tap: () => s.set('hide', !hide)),
                 ],
                 g: 10,
                 bg: G,
@@ -248,47 +252,12 @@ class Login extends Scr {
         w: 'fill',
         p: [24, 24],
       ),
-      R(
-        [
-          N(divider(), fillW: true),
-          T('أو', 13, 400, MU),
-          N(divider(), fillW: true),
-        ],
-        g: 12,
-        w: 'fill',
-        p: [8, 24],
-        al: 'c',
-      ),
-      F(
-        [
-          btn(
-            'كمّل بحساب Apple',
-            icon: 'smartphone',
-            kind: 'g',
-            tap: () => toast(c, 'تسجيل Apple قريباً'),
-          ),
-          btn(
-            'كمّل بحساب Google',
-            icon: 'mail',
-            kind: 'g',
-            tap: () => toast(c, 'تسجيل Google قريباً'),
-          ),
-        ],
-        g: 12,
-        w: 'fill',
-        p: [0, 24],
-      ),
       BOX(w: 10, h: 16),
       F(
-        [
-          Tn(
-            'ما عندك حساب؟ أنشئ حساب',
-            s: 14,
-            w: 700,
-            c: P,
-            al: 'CENTER',
-          ),
-        ],
+        [Tn('ما عندك حساب؟ أنشئ حساب', s: 14, w: 700, c: P, al: 'CENTER')],
+        w: 'fill',
+        al: 'c',
+        p: [8, 24],
         tap: () => push(c, const CreateAccount()),
       ),
       F(
@@ -322,8 +291,10 @@ class CreateAccount extends Scr {
       if (name.text.trim().length < 2) return s.set('err', 'اكتب اسمك');
       final d = normPhone(phone.text);
       if (d == null) return s.set('err', 'دخّل رقم موبايل عراقي صحيح');
-      if (pass.text.trim().length < 6) return s.set('err', 'كلمة السر لازم تكون 6 حروف أو أكثر');
-      if (pass.text != confirm.text) return s.set('err', 'تأكيد كلمة السر ما يطابق');
+      if (pass.text.trim().length < 6)
+        return s.set('err', 'كلمة السر لازم تكون 6 حروف أو أكثر');
+      if (pass.text != confirm.text)
+        return s.set('err', 'تأكيد كلمة السر ما يطابق');
       s.set('err', null);
       s.set('busy', true);
       try {
@@ -346,10 +317,9 @@ class CreateAccount extends Scr {
               field(ctl, hint, 16, obscure: hide, al: TextAlign.right),
               fillW: true,
             ),
-            F(
-              [I(hide ? 'eye' : 'eye-off', 20, MU)],
-              tap: () => s.set('hide', !hide),
-            ),
+            F([
+              I(hide ? 'eye' : 'eye-off', 20, MU),
+            ], tap: () => s.set('hide', !hide)),
           ],
           g: 10,
           bg: G,
@@ -380,12 +350,7 @@ class CreateAccount extends Scr {
             [
               T('اسمك', 13, 500, MU),
               R(
-                [
-                  N(
-                    field(name, 'مثال: حسين', 16, maxLength: 80),
-                    fillW: true,
-                  ),
-                ],
+                [N(field(name, 'مثال: حسين', 16, maxLength: 80), fillW: true)],
                 bg: G,
                 r: 14,
                 h: 52,
@@ -445,178 +410,13 @@ class CreateAccount extends Scr {
           secret('تأكيد كلمة السر', confirm, 'أعد كتابة كلمة السر'),
           if (err != null) T(err, 12, 500, RD),
           btn('إنشاء الحساب', tap: submit, busy: busy),
-          F(
-            [
-              Tn(
-                'عندك حساب؟ سجّل دخول',
-                s: 14,
-                w: 700,
-                c: P,
-                al: 'CENTER',
-              ),
-            ],
-            tap: () => replace(c, const Login()),
-          ),
+          F([
+            Tn('عندك حساب؟ سجّل دخول', s: 14, w: 700, c: P, al: 'CENTER'),
+          ], tap: () => replace(c, const Login())),
         ],
         g: 16,
         w: 'fill',
         p: [16, 24],
-      ),
-    ]);
-  }
-}
-
-class Otp extends Scr {
-  final String phone;
-  const Otp(this.phone, {super.key});
-  @override
-  void init(ScrSt s) {
-    s.v['left'] = 42;
-    void tick() => Future.delayed(const Duration(seconds: 1), () {
-      if (!s.mounted) return;
-      final l = s.get('left', 42);
-      if (l > 0) {
-        s.set('left', l - 1);
-        tick();
-      }
-    });
-    tick();
-  }
-
-  @override
-  Widget view(c, s) {
-    final ctl = s.ctl('otp');
-    final focus = s.get('f', FocusNode());
-    final code = ctl.text;
-    final err = s.get<String?>('err', null);
-    final busy = s.get('busy', false);
-    final left = s.get('left', 42);
-    Future<void> confirm() async {
-      final entered = ctl.text.trim();
-      if (entered.length < 4) return s.set('err', 'دخّل الرمز كامل');
-      if (s.get('busy', false)) return;
-      s.set('busy', true);
-      Role role;
-      try {
-        role = await repo.login(phone, entered);
-      } catch (e) {
-        s.set('busy', false);
-        s.set('err', e.toString());
-        return;
-      }
-      if (!c.mounted) return;
-      if (role == Role.owner) {
-        resetTo(c, const OwnerHome(), anim: true);
-      } else if (repo.isNewUser) {
-        resetTo(c, const Gov(), anim: true);
-      } else {
-        resetTo(c, const Home(), anim: true);
-      }
-    }
-
-    Widget box(String v, bool on) => F(
-      [Tn(v, s: 24, w: 800, al: 'CENTER')],
-      al: 'c',
-      jc: 'c',
-      w: 64,
-      h: 64,
-      r: 16,
-      bg: on ? WH : G,
-      sk: on ? P : null,
-      skw: 2,
-    );
-    return screen(c, [
-      topbar(''),
-      F(
-        [
-          T('دخّل رمز التحقق', 26, 800),
-          T('طلبنا رمز تحقق للرقم ${phoneFmt(phone)}', 15, 400, MU),
-        ],
-        g: 8,
-        w: 'fill',
-        p: [16, 24],
-      ),
-      Stack(
-        children: [
-          Opacity(
-            opacity: 0,
-            child: SizedBox(
-              height: 112,
-              child: TextField(
-                controller: ctl,
-                focusNode: focus,
-                autofocus: true,
-                keyboardType: TextInputType.number,
-                maxLength: 4,
-                onChanged: (_) {
-                  s.set('err', null);
-                  if (ctl.text.length == 4) confirm();
-                },
-              ),
-            ),
-          ),
-          R(
-            [
-              for (var i = 0; i < 4; i++)
-                box(
-                  i < code.length ? code[i] : '',
-                  i == code.length.clamp(0, 3),
-                ),
-            ],
-            g: 12,
-            jc: 'c',
-            w: 'fill',
-            p: [24, 24],
-            ltr: true,
-            tap: () => focus.requestFocus(),
-          ),
-        ],
-      ),
-      if (err != null)
-        F(
-          [Tn(err, s: 13, w: 700, c: RD, al: 'CENTER')],
-          w: 'fill',
-          al: 'c',
-          p: [0, 0, 8, 0],
-        ),
-      F(
-        [
-          R([
-            T('ما وصلك؟', 14, 400, MU),
-            F(
-              [
-                T(
-                  left > 0
-                      ? 'أعد الإرسال بعد 0:${left.toString().padLeft(2, '0')}'
-                      : 'أعد الإرسال',
-                  14,
-                  700,
-                  P,
-                ),
-              ],
-              tap: left > 0
-                  ? null
-                  : () async {
-                      try {
-                        await repo.requestOtp(phone);
-                        s.set('left', 42);
-                        s.widget.init(s);
-                        if (c.mounted) toast(c, 'تم طلب الرمز');
-                      } catch (e) {
-                        s.set('err', e.toString());
-                      }
-                    },
-            ),
-          ], g: 6),
-        ],
-        w: 'fill',
-        al: 'c',
-      ),
-      BOX(w: 10, h: 260),
-      F(
-        [btn('تأكيد', tap: confirm, busy: busy)],
-        w: 'fill',
-        p: [0, 24],
       ),
     ]);
   }
@@ -701,12 +501,6 @@ class Gov extends Scr {
               h: 48,
               w: 'fill',
               p: [0, 16],
-            ),
-            R(
-              [I('locate-fixed', 20, P), T('استخدم موقعي الحالي', 15, 700, P)],
-              g: 8,
-              p: [4, 0],
-              tap: () => toast(c, 'تحديد الموقع غير مربوط حالياً'),
             ),
           ],
           g: 14,

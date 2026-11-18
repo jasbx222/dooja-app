@@ -5,6 +5,8 @@ import 'dsl.dart';
 import 'common.dart';
 import 'repo.dart';
 
+import 'package:url_launcher/url_launcher.dart';
+
 abstract class Scr extends StatefulWidget {
   const Scr({super.key});
   Widget view(BuildContext c, ScrSt s);
@@ -297,4 +299,26 @@ Future<bool> apiAction(
     }
   }
   return ok;
+}
+
+/// Opens the phone dialer for [phone]; shows a message when it can't.
+Future<void> callPhone(BuildContext c, String phone) async {
+  final digits = phone.replaceAll(RegExp(r'[^0-9+]'), '');
+  if (digits.isEmpty) return toast(c, 'ماكو رقم هاتف لهذا المكان');
+  if (!await launchUrl(Uri(scheme: 'tel', path: digits)) && c.mounted) {
+    toast(c, 'ما كدرنا نفتح الاتصال. الرقم $phone');
+  }
+}
+
+/// Opens a maps search for the venue by name and area.
+Future<void> openMaps(BuildContext c, String name, String area) async {
+  final q = [name, area, 'العراق'].where((x) => x.isNotEmpty).join(' ');
+  final url = Uri.https('www.google.com', '/maps/search/', {
+    'api': '1',
+    'query': q,
+  });
+  if (!await launchUrl(url, mode: LaunchMode.externalApplication) &&
+      c.mounted) {
+    toast(c, 'ما كدرنا نفتح الخريطة');
+  }
 }

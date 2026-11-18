@@ -42,22 +42,9 @@ N reviewTile(Review r, {bool full = false}) => F(
         bg: BG,
         w: 'fill',
       ),
-    if (full && r.photos) T('صور التقييم غير متاحة من الخادم', 12, 400, MU),
   ],
   g: 10,
   w: 'fill',
-);
-Future<void> reportSheet(BuildContext c) => openSheet(
-  c,
-  title: 'بلاغ',
-  body: (sc, set) => [
-    Tn(
-      'إرسال البلاغات غير مربوط في API الحالي. لم يتم إرسال أي بلاغ.',
-      s: 14,
-      c: MU,
-    ),
-    btn('إغلاق', tap: () => Navigator.pop(sc)),
-  ],
 );
 
 class Details extends Scr {
@@ -115,7 +102,7 @@ class Details extends Scr {
               w: 'fill',
             ),
             T('${kfmt(p.followers)} متابع · ${p.nRev} تقييم', 13, 500, MU),
-            T('الأسعار', 17, 800),
+            T('المدة والسعر', 17, 800),
             R(
               [
                 for (var i = 0; i < pks.length; i++)
@@ -123,7 +110,9 @@ class Details extends Scr {
                     [
                       Tn(pks[i].$1, s: 14, w: 700, al: 'CENTER'),
                       Tn(
-                        '${fmt(pks[i].$3)} د.ع',
+                        p.unit == 'ساعة'
+                            ? '${fmt(pks[i].$3)} د.ع'
+                            : '${fmt(pks[i].$3)} د.ع للفرد',
                         s: 16,
                         w: 800,
                         c: P,
@@ -153,18 +142,27 @@ class Details extends Scr {
                 p: 12,
                 g: 6,
               ),
-            Tn(
-              'الخدمات الإضافية للعرض فقط؛ الحجز الحالي يحسب سعر المكان ولا يضيف خدمات غير مدعومة.',
-              s: 12,
-              c: MU,
-            ),
             T('التواصل والموقع', 17, 800),
-            T(p.phone, 14, 600),
-            T(p.area, 14, 500, MU),
-            Tn(
-              'ساعات الدوام والمرافق والإحداثيات غير متوفرة في API الحالي.',
-              s: 13,
-              c: MU,
+            R(
+              [
+                if (p.phone.isNotEmpty)
+                  btn(
+                    'اتصال',
+                    icon: 'phone',
+                    kind: 'g',
+                    h: 46,
+                    tap: () => callPhone(c, p.phone),
+                  ),
+                btn(
+                  'الاتجاهات',
+                  icon: 'navigation',
+                  kind: 's',
+                  h: 46,
+                  tap: () => openMaps(c, p.name, p.area),
+                ),
+              ],
+              g: 10,
+              w: 'fill',
             ),
             R(
               [

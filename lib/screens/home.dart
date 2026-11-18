@@ -8,6 +8,7 @@ import 'place.dart';
 import 'flow.dart';
 import 'more.dart';
 import 'shop.dart';
+import 'auth.dart';
 
 N heartBtn(Place p, {double s = 30, double is_ = 16, List<double>? ab}) {
   final on = repo.favs.contains(p.id);
@@ -47,6 +48,7 @@ N nowcard(BuildContext c, Place p, {double w = 172}) => F(
         R(
           [rating(p.rating), T('${p.priceS} د.ع / ${p.unit}', 13, 800, P)],
           jc: 'sb',
+          g: 8,
           w: 'fill',
         ),
       ],
@@ -82,7 +84,10 @@ N rowcard(BuildContext c, Place p, {String? reason}) {
                 jc: 'sb',
                 w: 'fill',
               ),
-              meta('map-pin', '${p.type} · ${p.area} · ${p.dist}'),
+              meta(
+                'map-pin',
+                [p.type, p.area, p.dist].where((x) => x.isNotEmpty).join(' · '),
+              ),
               R([rating(p.rating, p.nRev), availBadge(p.kind)], g: 8),
               R([
                 T('${p.priceS} د.ع', 15, 800, P),
@@ -207,7 +212,7 @@ class Home extends Scr {
               r: 22,
               bg: WH,
               sk: LN,
-              tap: () => push(c, MapView()),
+              tap: () => push(c, const Gov(fromSettings: true)),
             ),
             WORD(22),
             R([
@@ -263,13 +268,17 @@ class Home extends Scr {
             ),
             R(
               [
-                R([
-                  I('store', 22, P),
-                  F([
-                    Tn('التسوق', s: 16, w: 800),
-                    Tn('المتجر، السلة، وطلباتي', s: 12, c: MU),
-                  ], g: 2),
-                ], g: 10, al: 'c'),
+                R(
+                  [
+                    I('store', 22, P),
+                    F([
+                      Tn('التسوق', s: 16, w: 800),
+                      Tn('المتجر، السلة، وطلباتي', s: 12, c: MU),
+                    ], g: 2),
+                  ],
+                  g: 10,
+                  al: 'c',
+                ),
                 I('chevron-left', 18, MU),
               ],
               jc: 'sb',
@@ -323,40 +332,6 @@ class Home extends Scr {
               offer(o, o.exp, 'احجز من التطبيق'),
           ],
           g: 10,
-          w: 'fill',
-          p: [0, 20],
-        ),
-        sechead('ريلز ضوجة', 'video', 'قريباً', () => push(c, const Reels())),
-        F(
-          [
-            card([
-              F(
-                [
-                  F(
-                    [I('video', 28, P)],
-                    al: 'c',
-                    jc: 'c',
-                    w: 64,
-                    h: 64,
-                    r: 20,
-                    bg: PL,
-                  ),
-                  Tn('الريلز قريباً', s: 16, w: 800, al: 'CENTER'),
-                  Tn(
-                    'رح تشوف فيديوهات الأماكن وتحجز منها مباشرة. الميزة تجهز للزبائن، وما نعرض محتوى تجريبي.',
-                    s: 13,
-                    c: MU,
-                    al: 'CENTER',
-                    w2: 280,
-                    lh: 20,
-                  ),
-                ],
-                g: 10,
-                al: 'c',
-                w: 'fill',
-              ),
-            ], p: 16, tap: () => push(c, const Reels())),
-          ],
           w: 'fill',
           p: [0, 20],
         ),
@@ -539,8 +514,6 @@ class Filt {
     ..minRate = minRate;
 }
 
-double km(Place p) =>
-    double.tryParse(p.dist.split(' ').first) ?? double.infinity;
 List<Place> applyF(Filt f, String q, String chip) => repo.places.where((p) {
   if (q.isNotEmpty &&
       !q
@@ -558,12 +531,9 @@ List<Place> applyF(Filt f, String q, String chip) => repo.places.where((p) {
     return false;
   if (p.price > f.maxBudget && f.maxBudget < 40000) return false;
   if (p.price < f.minBudget && f.minBudget > 5000) return false;
-  final d = {'أقل من 2 كم': 2.0, '5 كم': 5.0, '10 كم': 10.0}[f.dist];
-  if (d != null && km(p) > d) return false;
   if (f.avail == 'مفتوح الآن' && p.kind == 'full') return false;
   if (f.avail == 'تتوفر مواعيد الآن' && p.kind != 'slots') return false;
   if (double.parse(p.rating) < f.minRate) return false;
-  if (chip == 'قريب مني' && km(p) > 3) return false;
   if (chip == 'متوفر هسه' && p.kind != 'slots') return false;
   if (chip == 'عروض' && !repo.offers.any((o) => o.placeId == p.id))
     return false;
@@ -636,22 +606,6 @@ Future<void> filtersSheet(BuildContext c, Filt f, VoidCallback onApply) {
                             ((lo + v.end * (hi - lo)) / 250).round() * 250;
                       }),
                     ),
-                  ),
-                ]),
-                sect('المسافة', [
-                  R(
-                    [
-                      for (final l in [
-                        'أقل من 2 كم',
-                        '5 كم',
-                        '10 كم',
-                        'كل بغداد',
-                      ])
-                        ch(l, t.dist == l, () => t.dist = l),
-                    ],
-                    g: 8,
-                    wrap: true,
-                    w: 'fill',
                   ),
                 ]),
                 sect('التوفر', [
@@ -756,7 +710,6 @@ class Search extends Scr {
           [
             for (final (l, i) in [
               ('الكل', null),
-              ('قريب مني', 'navigation'),
               ('متوفر هسه', 'zap'),
               ('عروض', 'badge-percent'),
             ])
@@ -770,28 +723,9 @@ class Search extends Scr {
         ),
       ),
       R(
-        [
-          T('${res.length} نتيجة بـ ${repo.gov}', 14, 700),
-          R([
-            R(
-              [T('قائمة', 13, 700, P), I('list', 16, P)],
-              g: 4,
-              bg: PL,
-              r: 10,
-              p: [6, 10],
-            ),
-            R(
-              [T('خريطة', 13, 500, MU), I('map', 16, MU)],
-              g: 4,
-              r: 10,
-              p: [6, 10],
-              tap: () => push(c, MapView()),
-            ),
-          ]),
-        ],
-        jc: 'sb',
+        [T('${res.length} نتيجة بـ ${repo.gov}', 14, 700)],
         w: 'fill',
-        p: [8, 20],
+        p: [0, 20],
       ),
       if (busy)
         F(
@@ -828,22 +762,6 @@ class Search extends Scr {
   }
 }
 
-const MAPSVG = '''<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844"><rect width="390" height="844" fill="#EEF0F5"/>
-<path d="M250 -10 C210 120 300 220 240 330 C180 440 260 540 200 650 C160 730 190 800 170 860" stroke="#CFE3F7" stroke-width="34" fill="none"/>
-<g stroke="#FFFFFF" stroke-width="12" fill="none"><path d="M-10 180 L400 240"/><path d="M-10 470 L400 420"/><path d="M90 -10 L130 860"/><path d="M-10 690 L400 720"/><path d="M330 -10 L300 860"/></g>
-<g stroke="#FFFFFF" stroke-width="5" fill="none"><path d="M-10 90 L400 120"/><path d="M-10 330 L400 350"/><path d="M200 -10 L180 860"/><path d="M-10 590 L400 560"/><path d="M40 -10 L60 860"/></g>
-<rect x="140" y="250" width="40" height="60" rx="6" fill="#DCEFD8"/><rect x="20" y="500" width="60" height="40" rx="6" fill="#DCEFD8"/><rect x="310" y="610" width="50" height="50" rx="6" fill="#DCEFD8"/></svg>''';
-
-class MapView extends Scr {
-  const MapView({super.key});
-  @override
-  Widget view(c, s) => screen(c, [
-    topbar('الأماكن'),
-    Tn('الخريطة الحية غير مربوطة. العناوين أدناه من الخادم.', s: 14, c: MU),
-    for (final p in repo.places) rowcard(c, p),
-  ]);
-}
-
 class SvgFill extends StatelessWidget {
   final String svg;
   const SvgFill(this.svg, {super.key});
@@ -866,11 +784,7 @@ class Category extends Scr {
     if (ch == 'الأرخص') list.sort((a, b) => a.price.compareTo(b.price));
     final big = list.isNotEmpty ? list.first : null;
     return screen(c, [
-      topbar(
-        cat,
-        sub: '${list.length} مكان بـ ${repo.gov}',
-        right: iconbtn('map', tap: () => push(c, MapView())),
-      ),
+      topbar(cat, sub: '${list.length} مكان بـ ${repo.gov}'),
       SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: R(
@@ -904,7 +818,10 @@ class Category extends Scr {
               [
                 F([
                   T(big.name, 17, 800),
-                  meta('map-pin', '${big.area} · ${big.dist}'),
+                  meta(
+                    'map-pin',
+                    [big.area, big.dist].where((x) => x.isNotEmpty).join(' · '),
+                  ),
                 ], g: 4),
                 F(
                   [price(big.priceS), T('لل${big.unit}', 11, 400, MU)],

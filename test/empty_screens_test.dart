@@ -34,7 +34,6 @@ void main() {
       const Home(),
       const Search(),
       const Category('بادل'),
-      const MapView(),
       const Bookings(),
       const Offers(),
       const Reels(),
@@ -50,7 +49,6 @@ void main() {
       const OServices(),
       const OScan(),
       const OCal(),
-      const Group(),
       const Rewards(),
       const Details('missing'),
     ]) {
