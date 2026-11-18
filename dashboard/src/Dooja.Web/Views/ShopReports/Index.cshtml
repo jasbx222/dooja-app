@@ -78,7 +78,7 @@
                 @{ var i = 0; }
                 @foreach (var r in best)
                 {
-                    <li><div class="rank-row"><span class="rank-no">@(++i)</span><strong>@r.Name</strong><span class="rank-meta">@r.Qty قطعة<small class="muted">@r.Total.ToString("N0") د.ع</small></span></div></li>
+                    <li><div class="rank-row"><span class="rank-no">@(++i)</span>@Ui.Thumb(r.Image, r.Name, "thumb sm")<strong>@r.Name</strong><span class="rank-meta">@r.Qty قطعة<small class="muted">@r.Total.ToString("N0") د.ع</small></span></div></li>
                 }
             </ol>
         }
@@ -92,7 +92,7 @@
                 @{ var j = 0; }
                 @foreach (var r in least)
                 {
-                    <li><div class="rank-row"><span class="rank-no">@(++j)</span><strong>@r.Name</strong><span class="rank-meta">@r.Qty قطعة<small class="muted">@r.Total.ToString("N0") د.ع</small></span></div></li>
+                    <li><div class="rank-row"><span class="rank-no">@(++j)</span>@Ui.Thumb(r.Image, r.Name, "thumb sm")<strong>@r.Name</strong><span class="rank-meta">@r.Qty قطعة<small class="muted">@r.Total.ToString("N0") د.ع</small></span></div></li>
                 }
             </ol>
         }

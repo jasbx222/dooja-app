@@ -159,14 +159,14 @@ public class ShopOrdersController(DoojaDb db, ShopService shop) : DashboardContr
     }
     public async Task<IActionResult> Detail(int id)
     {
-        var order = await db.ShopOrders.Include(x => x.Items).Include(x => x.Events).Include(x => x.User).FirstOrDefaultAsync(x => x.Id == id);
+        var order = await db.ShopOrders.Include(x => x.Items).ThenInclude(i => i.Product!).ThenInclude(p => p.Images).Include(x => x.Events).Include(x => x.User).FirstOrDefaultAsync(x => x.Id == id);
         if (order == null) return NotFound();
         ViewBag.Statuses = ShopOrderStates.All.Where(x => ShopOrderStates.CanAdmin(order.Status, x) && x != order.Status).ToArray();
         return View(order);
     }
     public async Task<IActionResult> Print(int id)
     {
-        var order = await db.ShopOrders.AsNoTracking().Include(x => x.Items).Include(x => x.Events).FirstOrDefaultAsync(x => x.Id == id);
+        var order = await db.ShopOrders.AsNoTracking().Include(x => x.Items).ThenInclude(i => i.Product!).ThenInclude(p => p.Images).Include(x => x.Events).FirstOrDefaultAsync(x => x.Id == id);
         return order == null ? NotFound() : View(order);
     }
     [HttpPost]
@@ -186,7 +186,7 @@ public class ShopInventoryController(DoojaDb db, ShopService shop) : DashboardCo
         var settings = await db.StoreSettings.AsNoTracking().FirstAsync(x => x.Id == 1);
         var low = settings.LowStock;
         ViewBag.Low = low;
-        var all = await db.Products.AsNoTracking().Include(x => x.Category).Where(x => !x.Archived).OrderBy(x => x.Stock).ThenBy(x => x.Name).ToListAsync();
+        var all = await db.Products.AsNoTracking().Include(x => x.Category).Include(x => x.Images).Where(x => !x.Archived).OrderBy(x => x.Stock).ThenBy(x => x.Name).ToListAsync();
         ViewBag.Total = all.Count;
         ViewBag.Units = all.Sum(x => (long)x.Stock);
         ViewBag.OutCount = all.Count(x => x.Stock == 0);
@@ -196,7 +196,7 @@ public class ShopInventoryController(DoojaDb db, ShopService shop) : DashboardCo
         IEnumerable<Product> shown = filter switch { "low" => all.Where(x => x.Stock > 0 && x.Stock <= low), "out" => all.Where(x => x.Stock == 0), _ => all };
         if (!string.IsNullOrWhiteSpace(q)) shown = shown.Where(x => x.Name.Contains(q.Trim(), StringComparison.OrdinalIgnoreCase));
         ViewBag.Products = shown.ToList();
-        return View(await db.InventoryTransactions.AsNoTracking().Include(x => x.Product).OrderByDescending(x => x.Id).Take(200).ToListAsync());
+        return View(await db.InventoryTransactions.AsNoTracking().Include(x => x.Product!).ThenInclude(p => p.Images).OrderByDescending(x => x.Id).Take(200).ToListAsync());
     }
     [HttpPost]
     public async Task<IActionResult> Adjust(int productId, int delta, string note, string? filter)
@@ -218,14 +218,14 @@ public class ShopReportsController(DoojaDb db) : DashboardControllerBase
         ViewBag.To = end.ToString("yyyy-MM-dd");
         var begin = Baghdad.StartUtc(start);
         var until = Baghdad.StartUtc(end.AddDays(1));
-        var orders = await db.ShopOrders.AsNoTracking().Include(x => x.Items).Where(x => x.CreatedAt >= begin && x.CreatedAt < until).ToListAsync();
+        var orders = await db.ShopOrders.AsNoTracking().Include(x => x.Items).ThenInclude(i => i.Product!).ThenInclude(p => p.Images).Where(x => x.CreatedAt >= begin && x.CreatedAt < until).ToListAsync();
         var live = orders.Where(x => x.Status != ShopOrderStates.Cancelled).ToList();
         ViewBag.Orders = orders.Count;
         ViewBag.Pending = orders.Count(x => x.Status == ShopOrderStates.Pending);
         ViewBag.Completed = orders.Count(x => x.Status == ShopOrderStates.Delivered);
         ViewBag.Cancelled = orders.Count(x => x.Status == ShopOrderStates.Cancelled);
         ViewBag.Revenue = live.Sum(x => x.Total);
-        var grouped = live.SelectMany(x => x.Items).GroupBy(x => x.Name).Select(g => new ShopSoldRow(g.Key, g.Sum(x => x.Qty), g.Sum(x => x.LineTotal))).OrderByDescending(x => x.Qty).ToList();
+        var grouped = live.SelectMany(x => x.Items).GroupBy(x => x.Name).Select(g => new ShopSoldRow(g.Key, g.Sum(x => x.Qty), g.Sum(x => x.LineTotal), g.Select(x => Ui.Cover(x.Product)).FirstOrDefault(x => x != null))).OrderByDescending(x => x.Qty).ToList();
         ViewBag.Best = grouped.Take(8).ToList();
         ViewBag.Least = grouped.OrderBy(x => x.Qty).Take(8).ToList();
         var days = Enumerable.Range(0, end.DayNumber - start.DayNumber + 1).Select(start.AddDays).ToList();

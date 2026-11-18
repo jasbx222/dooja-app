@@ -903,7 +903,7 @@ class Repo extends ChangeNotifier {
     intVal(m, 'deliveryFee'),
     intVal(m, 'total'),
     str(m, 'payMethod'),
-    rows(m['items']).map((x) => CartLine(0, intVal(x, 'productId'), str(x, 'name'), '', intVal(x, 'qty'), intVal(x, 'unitPrice'), intVal(x, 'lineTotal'), 0, false, true)).toList(),
+    rows(m['items']).map((x) => CartLine(0, intVal(x, 'productId'), str(x, 'name'), str(x, 'imageUrl'), intVal(x, 'qty'), intVal(x, 'unitPrice'), intVal(x, 'lineTotal'), 0, false, true)).toList(),
     ((m['history'] as List?) ?? []).map((e) {
       final x = Map<String, dynamic>.from(e as Map);
       return (str(x, 'status'), str(x, 'note'), str(x, 'createdAt'));

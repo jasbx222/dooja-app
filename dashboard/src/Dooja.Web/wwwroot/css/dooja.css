@@ -309,6 +309,9 @@ blockquote strong { color: var(--p); font-size: 12px; }
 .chart-col small, .chart-col strong { white-space: nowrap; }
 .product-cell { display: flex; align-items: center; gap: 12px; }
 .product-cell .thumb { display: grid; place-items: center; color: var(--mu); font-weight: 700; }
+img.thumb { object-fit: cover; background: var(--g); }
+.thumb.sm { width: 32px; height: 32px; border-radius: 9px; font-size: 12px; }
+.rank-row .thumb { display: grid; place-items: center; color: var(--mu); font-weight: 700; }
 .toolbar input, .toolbar select { min-height: 40px; border: 1px solid transparent; border-radius: var(--r-control); background: var(--g); padding: 6px 12px; outline: none; }
 .toolbar input:focus, .toolbar select:focus { background: var(--wh); border-color: var(--p); }
 .toolbar input[name="q"] { flex: 1 1 220px; }

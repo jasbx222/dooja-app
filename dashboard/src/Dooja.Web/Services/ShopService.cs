@@ -152,7 +152,7 @@ public class ShopService(DoojaDb db, ILogger<ShopService> log, IConfiguration co
         await using var tx = await db.Database.BeginTransactionAsync();
         if (key != null)
         {
-            var prior = await db.ShopOrders.Include(x => x.Items).Include(x => x.Events).FirstOrDefaultAsync(x => x.UserId == userId && x.IdempotencyKey == key);
+            var prior = await db.ShopOrders.Include(x => x.Items).ThenInclude(i => i.Product!).ThenInclude(p => p.Images).Include(x => x.Events).FirstOrDefaultAsync(x => x.UserId == userId && x.IdempotencyKey == key);
             if (prior != null) return (OrderDto(prior), null, true);
         }
         var settings = await db.StoreSettings.FirstAsync(x => x.Id == 1);
@@ -235,7 +235,7 @@ public class ShopService(DoojaDb db, ILogger<ShopService> log, IConfiguration co
             db.ChangeTracker.Clear();
             if (key != null)
             {
-                var prior = await db.ShopOrders.AsNoTracking().Include(x => x.Items).Include(x => x.Events).FirstOrDefaultAsync(x => x.UserId == userId && x.IdempotencyKey == key);
+                var prior = await db.ShopOrders.AsNoTracking().Include(x => x.Items).ThenInclude(i => i.Product!).ThenInclude(p => p.Images).Include(x => x.Events).FirstOrDefaultAsync(x => x.UserId == userId && x.IdempotencyKey == key);
                 if (prior != null) return (OrderDto(prior), null, true);
             }
             return (null, "تعذر إكمال الطلب، أعد المحاولة", false);
@@ -244,12 +244,12 @@ public class ShopService(DoojaDb db, ILogger<ShopService> log, IConfiguration co
         return (OrderDto(order), null, false);
     }
 
-    public async Task<List<object>> MyOrders(int userId) => (await db.ShopOrders.AsNoTracking().Include(x => x.Items).Include(x => x.Events)
+    public async Task<List<object>> MyOrders(int userId) => (await db.ShopOrders.AsNoTracking().Include(x => x.Items).ThenInclude(i => i.Product!).ThenInclude(p => p.Images).Include(x => x.Events)
         .Where(x => x.UserId == userId).OrderByDescending(x => x.CreatedAt).Take(100).ToListAsync()).Select(OrderDto).ToList();
 
     public async Task<object?> MyOrder(int userId, int id)
     {
-        var order = await db.ShopOrders.AsNoTracking().Include(x => x.Items).Include(x => x.Events).FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
+        var order = await db.ShopOrders.AsNoTracking().Include(x => x.Items).ThenInclude(i => i.Product!).ThenInclude(p => p.Images).Include(x => x.Events).FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
         return order == null ? null : OrderDto(order);
     }
 
@@ -282,7 +282,7 @@ public class ShopService(DoojaDb db, ILogger<ShopService> log, IConfiguration co
     {
         if (!ShopOrderStates.All.Contains(status)) return (null, "حالة غير معروفة");
         await using var tx = await db.Database.BeginTransactionAsync();
-        var order = await db.ShopOrders.Include(x => x.Items).Include(x => x.Events).FirstOrDefaultAsync(x => x.Id == id && (onlyUser == null || x.UserId == onlyUser));
+        var order = await db.ShopOrders.Include(x => x.Items).ThenInclude(i => i.Product!).ThenInclude(p => p.Images).Include(x => x.Events).FirstOrDefaultAsync(x => x.Id == id && (onlyUser == null || x.UserId == onlyUser));
         if (order == null) return (null, "الطلب غير موجود");
         if (order.Status == status) return (OrderDto(order), null);
         if (onlyUser != null)
@@ -386,7 +386,7 @@ public class ShopService(DoojaDb db, ILogger<ShopService> log, IConfiguration co
     {
         o.Id, o.Number, o.Status, createdAt = o.CreatedAt, o.CustomerName, o.Phone, o.Governorate, o.Area, o.Address, o.Notes,
         o.Subtotal, o.Discount, o.DeliveryFee, o.Total, payMethod = o.PayMethod,
-        items = o.Items.Select(i => new { i.ProductId, i.Name, i.UnitPrice, i.Qty, i.LineTotal }),
+        items = o.Items.Select(i => new { i.ProductId, i.Name, i.UnitPrice, i.Qty, i.LineTotal, imageUrl = i.Product?.Images.OrderBy(x => x.SortOrder).Select(x => x.Path).FirstOrDefault() }),
         history = o.Events.OrderBy(e => e.Id).Select(e => new { e.Status, e.Note, e.Actor, e.CreatedAt })
     };
 

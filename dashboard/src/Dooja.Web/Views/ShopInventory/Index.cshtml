@@ -41,7 +41,7 @@
                 @foreach (var p in products)
                 {
                     <tr>
-                        <td data-label="المنتج"><div class="product-cell"><span class="thumb">@(p.Name.Length > 0 ? p.Name[..1] : "")</span><div><strong>@p.Name</strong><small>@p.Category?.Name</small></div></div></td>
+                        <td data-label="المنتج"><div class="product-cell">@Ui.Thumb(Ui.Cover(p), p.Name)<div><strong>@p.Name</strong><small>@p.Category?.Name</small></div></div></td>
                         <td data-label="المتوفر"><div class="stock-cell"><span class="stock-num">@p.Stock</span>@if (p.Stock == 0) { <span class="status bad">نفد</span> } else if (p.Stock <= low) { <span class="status pending">منخفض</span> } else { <span class="status ok">متوفر</span> }</div></td>
                         <td data-label="تعديل">
                             <form asp-action="Adjust" method="post" class="adjust-form">
@@ -73,7 +73,7 @@
                 {
                     <tr>
                         <td data-label="الوقت"><span class="date">@Ui.Local(t.CreatedAt)</span></td>
-                        <td data-label="المنتج">@t.Product?.Name</td>
+                        <td data-label="المنتج"><div class="product-cell">@Ui.Thumb(Ui.Cover(t.Product), t.Product?.Name, "thumb sm")<span>@t.Product?.Name</span></div></td>
                         <td data-label="التغيير"><span class="delta @(t.Delta > 0 ? "up" : t.Delta < 0 ? "down" : null)">@(t.Delta > 0 ? "+" : "")@t.Delta</span></td>
                         <td data-label="بعدها">@t.StockAfter</td>
                         <td data-label="السبب">@t.Reason</td>

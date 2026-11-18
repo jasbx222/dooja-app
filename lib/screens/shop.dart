@@ -374,6 +374,11 @@ class ShopPage extends Scr {
       for (final o in repo.shopOrders)
         F([
           R([Tn(o.number, s: 14, w: 800), tag(o.status, bg: PL, c: P)], jc: 'sb', w: 'fill'),
+          if (o.items.isNotEmpty)
+            R([
+              for (final line in o.items.take(4)) productPhoto(line.image, 44, 44, r: 12),
+              if (o.items.length > 4) T('+${o.items.length - 4}', 13, 700, MU),
+            ], g: 6, al: 'c'),
           Tn('${fmt(o.total)} د.ع · ${o.pay}', s: 13, c: MU),
           if (o.createdAt.isNotEmpty) Tn(o.createdAt, s: 12, c: MU),
         ], g: 6, w: 'fill', p: 16, r: 18, bg: WH, sk: LN, tap: () => push(c, OrderPage(o.id))),
@@ -578,7 +583,15 @@ class OrderPage extends Scr {
         Tn('${o.name} · ${o.phone}', s: 14),
         Tn('${o.governorate} · ${o.area}', s: 13, c: MU),
         Tn(o.address, s: 13),
-        for (final line in o.items) R([Tn('${line.name} × ${line.qty}', s: 14), Tn('${fmt(line.lineTotal)} د.ع', s: 14, w: 700)], jc: 'sb', w: 'fill'),
+        for (final line in o.items)
+          R([
+            productPhoto(line.image, 56, 56, r: 14),
+            F([
+              Tn(line.name, s: 14, w: 700, maxLines: 2),
+              Tn('${fmt(line.unitPrice)} د.ع × ${line.qty}', s: 12, c: MU),
+            ], g: 4, w: 'fill'),
+            Tn('${fmt(line.lineTotal)} د.ع', s: 14, w: 700),
+          ], g: 12, al: 'c', w: 'fill', p: 10, r: 16, bg: WH, sk: LN),
         R([Tn('الإجمالي', s: 16, w: 800), Tn('${fmt(o.total)} د.ع', s: 16, w: 800, c: P)], jc: 'sb', w: 'fill'),
         Tn(o.pay, s: 13, c: MU),
         Tn('سجل الحالة', s: 14, w: 800),

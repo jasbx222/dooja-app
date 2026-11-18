@@ -166,7 +166,7 @@ public class StoreSetting
     public string CancelStatuses { get; set; } = ShopOrderStates.Pending;
 }
 
-public record ShopSoldRow(string Name, int Qty, long Total);
+public record ShopSoldRow(string Name, int Qty, long Total, string? Image = null);
 public record ShopDayRow(string Label, long Total);
 
 public class PaymentMethod

@@ -38,6 +38,19 @@ public static class Ui
 
     public static string Initial(string? name) => string.IsNullOrWhiteSpace(name) ? "ض" : name.Trim()[..1];
 
+    /// First (cover) image of a product, or null when it has none loaded.
+    public static string? Cover(Dooja.Web.Models.Product? p) =>
+        p?.Images?.OrderBy(i => i.SortOrder).Select(i => i.Path).FirstOrDefault();
+
+    /// Product thumbnail: the photo when there is one, otherwise the name's first letter.
+    public static IHtmlContent Thumb(string? path, string? name, string css = "thumb")
+    {
+        var enc = System.Text.Encodings.Web.HtmlEncoder.Default;
+        return string.IsNullOrWhiteSpace(path)
+            ? new HtmlString($"<span class=\"{css}\" aria-hidden=\"true\">{enc.Encode(Initial(name))}</span>")
+            : new HtmlString($"<img class=\"{css}\" src=\"{enc.Encode(path)}\" alt=\"\" loading=\"lazy\"/>");
+    }
+
     public static string PageHref(HttpRequest request, int page)
     {
         var pairs = request.Query

@@ -54,7 +54,7 @@
                         @foreach (var i in items)
                         {
                             <tr>
-                                <td data-label="المنتج"><div class="product-cell"><span class="thumb">@(i.Name.Length > 0 ? i.Name[..1] : "")</span><strong>@i.Name</strong></div></td>
+                                <td data-label="المنتج"><div class="product-cell">@Ui.Thumb(Ui.Cover(i.Product), i.Name)<strong>@i.Name</strong></div></td>
                                 <td data-label="سعر القطعة" class="num-cell">@i.UnitPrice.ToString("N0") د.ع</td>
                                 <td data-label="الكمية" class="num-cell">× @i.Qty</td>
                                 <td data-label="المجموع" class="num-cell"><strong>@i.LineTotal.ToString("N0") د.ع</strong></td>
