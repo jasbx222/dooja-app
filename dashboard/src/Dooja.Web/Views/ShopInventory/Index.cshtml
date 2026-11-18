@@ -1,10 +1,86 @@
 @model IEnumerable<InventoryTransaction>
-@{ViewData["Title"]="المخزون"; var products=(IEnumerable<Product>)ViewBag.Products; var low=(int)ViewBag.Low;}
-<div class="page-bar"><p class="lead">كل تغيير يُسجل مع السبب. البيع يرفض الكمية التي تتجاوز المتوفر. الأوقات بتوقيت بغداد.</p></div>
-<div class="panel"><div class="table-wrap"><table><thead><tr><th>المنتج</th><th>المتوفر</th><th>تنبيه</th><th>تعديل</th></tr></thead><tbody>
-@foreach(var p in products){<tr><td><strong>@p.Name</strong><small>@p.Category?.Name</small></td><td>@p.Stock</td><td>@if(p.Stock==0){<span class="status bad">نفد</span>}else if(p.Stock<=low){<span class="status pending">منخفض</span>}</td><td><form asp-action="Adjust" method="post" class="inline-form"><input type="hidden" name="productId" value="@p.Id"/><input name="delta" type="number" placeholder="+/-" class="qty-input"/><input name="note" placeholder="سبب التعديل" required/><button class="btn ghost compact">حفظ</button></form></td></tr>}
-</tbody></table></div></div>
-<div class="panel"><div class="section-head"><h2>سجل الحركة</h2></div><div class="table-wrap"><table><thead><tr><th>الوقت</th><th>المنتج</th><th>التغيير</th><th>بعدها</th><th>السبب</th><th>ملاحظة</th></tr></thead><tbody>
-@if(!Model.Any()){<tr><td class="empty" colspan="6">لا توجد حركات مخزون بعد.</td></tr>}
-@foreach(var t in Model){<tr><td>@Ui.Local(t.CreatedAt)</td><td>@t.Product?.Name</td><td>@t.Delta</td><td>@t.StockAfter</td><td>@t.Reason</td><td>@t.Note</td></tr>}
-</tbody></table></div></div>
+@{
+    ViewData["Title"] = "المخزون";
+    var products = (IEnumerable<Product>)ViewBag.Products;
+    var low = (int)ViewBag.Low;
+    var filter = (string)ViewBag.Filter;
+    var q = (string)ViewBag.Q;
+}
+<div class="page-bar">
+    <p class="lead">كل تعديل يُسجل مع سببه. البيع يرفض أي كمية تتجاوز المتوفر. الأوقات بتوقيت بغداد.</p>
+</div>
+
+<section class="stat-board four" aria-label="ملخص المخزون">
+    <a class="stat" asp-action="Index"><div class="stat-label">@Ui.Icon("layout-grid") <span>المنتجات</span></div><strong class="num">@(((int)ViewBag.Total).ToString("N0"))</strong><small>منتج غير مؤرشف</small></a>
+    <article class="stat"><div class="stat-label info">@Ui.Icon("store") <span>إجمالي القطع</span></div><strong class="num">@(((long)ViewBag.Units).ToString("N0"))</strong><small>قطعة متوفرة</small></article>
+    <a class="stat" asp-action="Index" asp-route-filter="low"><div class="stat-label warn">@Ui.Icon("clock") <span>مخزون منخفض</span></div><strong class="num">@(((int)ViewBag.LowCount).ToString("N0"))</strong><small>@low قطع أو أقل</small></a>
+    <a class="stat" asp-action="Index" asp-route-filter="out"><div class="stat-label bad">@Ui.Icon("circle-x") <span>نفد</span></div><strong class="num">@(((int)ViewBag.OutCount).ToString("N0"))</strong><small>يحتاج تعبئة</small></a>
+</section>
+
+<section class="panel">
+    <div class="section-head"><div><h2>الكميات</h2><p>اكتب رقماً موجباً للإضافة أو سالباً للخصم، مثلاً 10 أو ‎-2.</p></div></div>
+    <form method="get" class="toolbar">
+        <input type="search" name="q" value="@q" placeholder="ابحث باسم المنتج"/>
+        @if (filter != "") { <input type="hidden" name="filter" value="@filter"/> }
+        <button class="btn ghost compact">بحث</button>
+    </form>
+    <nav class="chips" aria-label="تصفية">
+        <a class="@(filter == "" ? "on" : null)" asp-action="Index" asp-route-q="@(q == "" ? null : q)">الكل</a>
+        <a class="@(filter == "low" ? "on" : null)" asp-action="Index" asp-route-filter="low" asp-route-q="@(q == "" ? null : q)">منخفض</a>
+        <a class="@(filter == "out" ? "on" : null)" asp-action="Index" asp-route-filter="out" asp-route-q="@(q == "" ? null : q)">نفد</a>
+    </nav>
+    <datalist id="adjust-reasons"><option value="استلام بضاعة"/><option value="جرد"/><option value="تالف"/><option value="مرتجع من زبون"/><option value="تصحيح خطأ"/></datalist>
+    <div class="table-wrap">
+        <table class="stack">
+            <thead><tr><th>المنتج</th><th>المتوفر</th><th>تعديل الكمية</th></tr></thead>
+            <tbody>
+                @if (!products.Any())
+                {
+                    <tr><td class="empty" colspan="3">@(q != "" || filter != "" ? "لا توجد منتجات تطابق التصفية." : "لا توجد منتجات بعد.")</td></tr>
+                }
+                @foreach (var p in products)
+                {
+                    <tr>
+                        <td data-label="المنتج"><div class="product-cell"><span class="thumb">@(p.Name.Length > 0 ? p.Name[..1] : "")</span><div><strong>@p.Name</strong><small>@p.Category?.Name</small></div></div></td>
+                        <td data-label="المتوفر"><div class="stock-cell"><span class="stock-num">@p.Stock</span>@if (p.Stock == 0) { <span class="status bad">نفد</span> } else if (p.Stock <= low) { <span class="status pending">منخفض</span> } else { <span class="status ok">متوفر</span> }</div></td>
+                        <td data-label="تعديل">
+                            <form asp-action="Adjust" method="post" class="adjust-form">
+                                <input type="hidden" name="productId" value="@p.Id"/>
+                                @if (filter != "") { <input type="hidden" name="filter" value="@filter"/> }
+                                <input name="delta" type="number" step="1" placeholder="+/-" aria-label="الكمية" required/>
+                                <input name="note" list="adjust-reasons" placeholder="السبب" aria-label="سبب التعديل" maxlength="200" required/>
+                                <button class="btn soft compact">تطبيق</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="panel block">
+    <div class="section-head"><div><h2>سجل الحركة</h2><p>آخر 200 حركة</p></div></div>
+    <div class="table-wrap">
+        <table class="stack">
+            <thead><tr><th>الوقت</th><th>المنتج</th><th>التغيير</th><th>بعدها</th><th>السبب</th><th>ملاحظة</th></tr></thead>
+            <tbody>
+                @if (!Model.Any())
+                {
+                    <tr><td class="empty" colspan="6">لا توجد حركات مخزون بعد.</td></tr>
+                }
+                @foreach (var t in Model)
+                {
+                    <tr>
+                        <td data-label="الوقت"><span class="date">@Ui.Local(t.CreatedAt)</span></td>
+                        <td data-label="المنتج">@t.Product?.Name</td>
+                        <td data-label="التغيير"><span class="delta @(t.Delta > 0 ? "up" : t.Delta < 0 ? "down" : null)">@(t.Delta > 0 ? "+" : "")@t.Delta</span></td>
+                        <td data-label="بعدها">@t.StockAfter</td>
+                        <td data-label="السبب">@t.Reason</td>
+                        <td data-label="ملاحظة"><span class="muted">@t.Note</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>

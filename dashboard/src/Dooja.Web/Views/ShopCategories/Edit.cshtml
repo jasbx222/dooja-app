@@ -1,7 +1,63 @@
 @model ProductCategory
-@{ViewData["Title"]=Model.Id==0?"تصنيف جديد":"تعديل تصنيف";}
-<div class="page-bar"><p class="lead"></p><a class="btn ghost" asp-action="Index">رجوع</a></div>
-<form asp-action="Save" method="post" class="panel edit-form"><input asp-for="Id" type="hidden"/><div asp-validation-summary="All" class="validation"></div>
-<div class="form-grid"><div><label asp-for="Name">الاسم</label><input asp-for="Name"/></div><div><label asp-for="SortOrder">ترتيب العرض</label><input asp-for="SortOrder"/></div><div class="check-group"><label><input asp-for="Active"/> ظاهر في التطبيق</label></div></div>
-<div class="form-actions"><button class="btn primary">حفظ</button>@if(Model.Id!=0){<button class="btn ghost" formaction="@Url.Action("Archive", new { id = Model.Id })" formmethod="post">أرشفة</button>}</div></form>
-@if(Model.Id!=0){<form asp-action="Upload" method="post" enctype="multipart/form-data" class="panel"><h2>صورة التصنيف</h2>@if(Model.ImagePath!=null){<img src="@Model.ImagePath" alt="" style="width:120px;height:120px;object-fit:cover;border-radius:16px"/>}<div class="form-actions"><input type="hidden" name="id" value="@Model.Id"/><input type="file" name="file" accept="image/jpeg,image/png,image/webp"/><button class="btn soft">رفع</button></div></form>}
+@{
+    var isNew = Model.Id == 0;
+    ViewData["Title"] = isNew ? "تصنيف جديد" : "تعديل تصنيف";
+}
+<div class="page-bar">
+    <p class="lead">@(isNew ? "التصنيفات ترتّب المنتجات في المتجر. احفظ التصنيف أولاً، بعدها تكدر تضيف صورته." : "التعديلات تظهر بالتطبيق مباشرة بعد الحفظ.")</p>
+    <a class="btn ghost" asp-action="Index">رجوع للتصنيفات</a>
+</div>
+
+<div class="editor">
+    <div class="editor-main">
+        <form id="category-form" asp-action="Save" method="post" class="panel">
+            <input asp-for="Id" type="hidden"/>
+            <div asp-validation-summary="ModelOnly" class="validation"></div>
+            <div class="section-head"><div><h2>بيانات التصنيف</h2><p>الاسم يظهر كتبويب في صفحة المتجر.</p></div></div>
+            <div class="form-grid">
+                <div class="field"><label asp-for="Name">اسم التصنيف <span class="req">*</span></label><input asp-for="Name" placeholder="مثلاً: أذرع التحكم" autocomplete="off"/><span asp-validation-for="Name"></span></div>
+                <div class="field"><label asp-for="SortOrder">ترتيب العرض</label><input asp-for="SortOrder" min="0" inputmode="numeric"/><span class="field-hint">الرقم الأصغر يظهر أولاً.</span><span asp-validation-for="SortOrder"></span></div>
+            </div>
+        </form>
+
+        <section class="panel">
+            <div class="section-head"><div><h2>صورة التصنيف</h2><p>صورة مربعة واضحة، JPG أو PNG أو WebP.</p></div></div>
+            @if (isNew)
+            {
+                <p class="empty-box">احفظ التصنيف أولاً، بعدها يظهر هنا رفع الصورة.</p>
+            }
+            else
+            {
+                <div class="category-image">
+                    <div class="preview">@if (Model.ImagePath != null) { <img src="@Model.ImagePath" alt="صورة التصنيف"/> } else { <span>بدون صورة</span> }</div>
+                    <form asp-action="Upload" method="post" enctype="multipart/form-data" class="upload-row">
+                        <input type="hidden" name="id" value="@Model.Id"/>
+                        <label class="dropzone">
+                            @Ui.Icon("plus")
+                            <strong>@(Model.ImagePath == null ? "اختر صورة" : "استبدال الصورة")</strong>
+                            <span data-picked>صورة واحدة</span>
+                            <input type="file" name="file" accept="image/jpeg,image/png,image/webp" required/>
+                        </label>
+                        <button class="btn soft">رفع الصورة</button>
+                    </form>
+                </div>
+            }
+        </section>
+    </div>
+
+    <aside class="editor-side">
+        <section class="panel">
+            <div class="section-head"><h2>الظهور</h2></div>
+            <div class="toggle-list">
+                <label class="toggle"><span><strong>ظاهر في التطبيق</strong><small>يظهر التصنيف ومنتجاته للزبائن</small></span><input asp-for="Active" form="category-form"/></label>
+            </div>
+        </section>
+        <div class="side-actions">
+            <button class="btn primary" form="category-form">@(isNew ? "حفظ التصنيف" : "حفظ التعديلات")</button>
+            @if (!isNew)
+            {
+                <button class="danger-link" form="category-form" formaction="@Url.Action("Archive", new { id = Model.Id })" formmethod="post" formnovalidate data-confirm="أرشفة التصنيف؟" data-confirm-ok="أرشفة">أرشفة التصنيف</button>
+            }
+        </div>
+    </aside>
+</div>

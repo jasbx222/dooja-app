@@ -56,6 +56,34 @@
         document.documentElement.classList.add("is-loading");
     });
 
+    // Product editor: show the discount the customer will see.
+    var price = document.querySelector("[data-price]");
+    var compare = document.querySelector("[data-compare]");
+    var discount = document.querySelector("[data-discount]");
+    function showDiscount() {
+        var p = Number(price.value), c = Number(compare.value);
+        var on = compare.value !== "" && price.value !== "" && c > p && p >= 0;
+        discount.textContent = on ? "خصم " + Math.round((c - p) * 100 / c) + "% — يوفّر الزبون " + (c - p).toLocaleString("en-US") + " د.ع" : "";
+        discount.classList.toggle("show", on);
+    }
+    if (price && compare && discount) {
+        price.addEventListener("input", showDiscount);
+        compare.addEventListener("input", showDiscount);
+        showDiscount();
+    }
+
+    // Upload boxes: name the picked files.
+    document.querySelectorAll(".dropzone input[type=file]").forEach(function (input) {
+        var label = input.closest(".dropzone").querySelector("[data-picked]");
+        if (!label) return;
+        input.addEventListener("change", function () {
+            var n = input.files.length;
+            if (!n) return;
+            label.textContent = n === 1 ? input.files[0].name : "تم اختيار " + n + " صور";
+            label.classList.add("picked");
+        });
+    });
+
     document.addEventListener("click", function (event) {
         if (event.target.closest("[data-print]")) { window.print(); return; }
         var link = event.target.closest("a");

@@ -181,19 +181,29 @@ public class ShopOrdersController(DoojaDb db, ShopService shop) : DashboardContr
 
 public class ShopInventoryController(DoojaDb db, ShopService shop) : DashboardControllerBase
 {
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(string? filter, string? q)
     {
         var settings = await db.StoreSettings.AsNoTracking().FirstAsync(x => x.Id == 1);
-        ViewBag.Low = settings.LowStock;
-        ViewBag.Products = await db.Products.AsNoTracking().Include(x => x.Category).Where(x => !x.Archived).OrderBy(x => x.Stock).ThenBy(x => x.Name).ToListAsync();
+        var low = settings.LowStock;
+        ViewBag.Low = low;
+        var all = await db.Products.AsNoTracking().Include(x => x.Category).Where(x => !x.Archived).OrderBy(x => x.Stock).ThenBy(x => x.Name).ToListAsync();
+        ViewBag.Total = all.Count;
+        ViewBag.Units = all.Sum(x => (long)x.Stock);
+        ViewBag.OutCount = all.Count(x => x.Stock == 0);
+        ViewBag.LowCount = all.Count(x => x.Stock > 0 && x.Stock <= low);
+        ViewBag.Filter = filter is "low" or "out" ? filter : "";
+        ViewBag.Q = q?.Trim() ?? "";
+        IEnumerable<Product> shown = filter switch { "low" => all.Where(x => x.Stock > 0 && x.Stock <= low), "out" => all.Where(x => x.Stock == 0), _ => all };
+        if (!string.IsNullOrWhiteSpace(q)) shown = shown.Where(x => x.Name.Contains(q.Trim(), StringComparison.OrdinalIgnoreCase));
+        ViewBag.Products = shown.ToList();
         return View(await db.InventoryTransactions.AsNoTracking().Include(x => x.Product).OrderByDescending(x => x.Id).Take(200).ToListAsync());
     }
     [HttpPost]
-    public async Task<IActionResult> Adjust(int productId, int delta, string note)
+    public async Task<IActionResult> Adjust(int productId, int delta, string note, string? filter)
     {
         var error = await shop.AdjustStock(productId, delta, note, int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!));
         TempData[error == null ? "Success" : "Error"] = error ?? "تم تعديل المخزون";
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Index), new { filter = filter is "low" or "out" ? filter : null });
     }
 }
 

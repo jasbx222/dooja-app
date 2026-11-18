@@ -23,7 +23,7 @@ public static class ShopOrderStates
 public class ProductCategory
 {
     public int Id { get; set; }
-    [Required, StringLength(80)] public string Name { get; set; } = "";
+    [Required(ErrorMessage = "اكتب اسم التصنيف"), StringLength(80)] public string Name { get; set; } = "";
     public string? ImagePath { get; set; }
     public int SortOrder { get; set; }
     public bool Active { get; set; } = true;
@@ -36,9 +36,9 @@ public class Product
     public int Id { get; set; }
     public int CategoryId { get; set; }
     public ProductCategory? Category { get; set; }
-    [Required, StringLength(160)] public string Name { get; set; } = "";
-    [StringLength(4000)] public string Description { get; set; } = "";
-    [StringLength(4000)] public string Specs { get; set; } = "";
+    [Required(ErrorMessage = "اكتب اسم المنتج"), StringLength(160)] public string Name { get; set; } = "";
+    [StringLength(4000), DisplayFormat(ConvertEmptyStringToNull = false)] public string Description { get; set; } = "";
+    [StringLength(4000), DisplayFormat(ConvertEmptyStringToNull = false)] public string Specs { get; set; } = "";
     [Range(0, 100_000_000)] public long Price { get; set; }
     public long? CompareAtPrice { get; set; }
     [Range(0, 1_000_000)] public int Stock { get; set; }

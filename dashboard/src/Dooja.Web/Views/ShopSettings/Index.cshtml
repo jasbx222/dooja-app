@@ -1,20 +1,93 @@
 @model StoreSetting
-@{ViewData["Title"]="إعدادات المتجر"; var areas=(IEnumerable<DeliveryArea>)ViewBag.Areas; var methods=(IEnumerable<PaymentMethod>)ViewBag.Methods;}
-<div class="page-bar"><p class="lead">الدفع الإلكتروني يبقى متوقفاً حتى يُربط مزوّد دفع حقيقي ويُختبر.</p></div>
-<form asp-action="Save" method="post" class="panel edit-form">
-<div class="form-grid">
-<div class="check-group"><label><input type="checkbox" name="enabled" value="true" @(Model.Enabled ? "checked" : null)/> المتجر مفتوح</label></div>
-<div><label>أجرة التوصيل الافتراضية د.ع</label><input name="deliveryFee" type="number" min="0" value="@Model.DeliveryFee"/></div>
-<div><label>الحد الأدنى للطلب د.ع</label><input name="minOrder" type="number" min="0" value="@Model.MinOrder"/></div>
-<div><label>حد تنبيه انخفاض المخزون</label><input name="lowStock" type="number" min="0" value="@Model.LowStock"/></div>
+@{
+    ViewData["Title"] = "إعدادات المتجر";
+    var areas = ((IEnumerable<DeliveryArea>)ViewBag.Areas).ToList();
+    var methods = (IEnumerable<PaymentMethod>)ViewBag.Methods;
+    var cancel = Model.CancelStatuses.Split(',');
+}
+<div class="page-bar">
+    <p class="lead">هذه الإعدادات تطبّق على كل طلبات المتجر من التطبيق.</p>
 </div>
-<label>حالات يسمح فيها للزبون بالإلغاء</label>
-<div class="check-group">@foreach(var s in ShopOrderStates.All.Where(x=>x!="ملغي"&&x!="تم التوصيل")){<label><input type="checkbox" name="cancelStatuses" value="@s" @(Model.CancelStatuses.Split(',').Contains(s) ? "checked" : null)/> @s</label>}</div>
-<div class="form-actions"><button class="btn primary">حفظ الإعدادات</button></div>
-</form>
-<div class="split-grid"><div class="panel"><h2>مناطق التوصيل</h2><p class="muted">إذا لم تُضف مناطق، يقبل الطلب أي محافظة ومنطقة بأجرة التوصيل الافتراضية.</p>
-<form asp-action="AddArea" method="post" class="form-grid"><div><label>المحافظة</label><input name="governorate"/></div><div><label>المنطقة</label><input name="area"/></div><div><label>أجرة خاصة (اختياري)</label><input name="fee" type="number" min="0"/></div><div class="form-actions"><button class="btn soft">إضافة</button></div></form>
-<table><tbody>@foreach(var a in areas){<tr><td>@a.Governorate · @a.Area</td><td>@(a.Fee?.ToString("N0")??"الافتراضية")</td><td><form asp-action="ToggleArea" method="post"><input type="hidden" name="id" value="@a.Id"/><button class="text-btn">@(a.Active?"إيقاف":"تفعيل")</button></form></td></tr>}</tbody></table>
+
+<div class="settings-grid">
+    <div class="editor-main">
+        <form id="settings-form" asp-action="Save" method="post" class="panel">
+            <div class="section-head"><div><h2>الطلب والتوصيل</h2><p>تُحسب على كل طلب جديد.</p></div></div>
+            <div class="stack-fields">
+                <div class="form-grid">
+                    <div class="field"><label for="deliveryFee">أجرة التوصيل الافتراضية</label><span class="input-unit"><input id="deliveryFee" name="deliveryFee" type="number" min="0" inputmode="numeric" value="@Model.DeliveryFee" required/><span>د.ع</span></span><span class="field-hint">تُستخدم للمناطق التي ليس لها أجرة خاصة.</span></div>
+                    <div class="field"><label for="minOrder">الحد الأدنى للطلب</label><span class="input-unit"><input id="minOrder" name="minOrder" type="number" min="0" inputmode="numeric" value="@Model.MinOrder" required/><span>د.ع</span></span><span class="field-hint">0 يعني بدون حد أدنى.</span></div>
+                    <div class="field"><label for="lowStock">تنبيه انخفاض المخزون</label><span class="input-unit"><input id="lowStock" name="lowStock" type="number" min="0" inputmode="numeric" value="@Model.LowStock" required/><span>قطعة</span></span><span class="field-hint">يظهر المنتج كـ«منخفض» عند هذا العدد أو أقل.</span></div>
+                </div>
+                <fieldset>
+                    <legend>متى يكدر الزبون يلغي طلبه؟</legend>
+                    <div class="pill-checks">
+                        @foreach (var s in ShopOrderStates.All.Where(x => x != ShopOrderStates.Cancelled && x != ShopOrderStates.Delivered))
+                        {
+                            <label><input type="checkbox" name="cancelStatuses" value="@s" @(cancel.Contains(s) ? "checked" : null)/> @s</label>
+                        }
+                    </div>
+                    <p class="field-hint" style="margin-top:8px">إذا لم تختر شيئاً، يُسمح بالإلغاء فقط والطلب بانتظار التأكيد.</p>
+                </fieldset>
+            </div>
+        </form>
+
+        <section class="panel">
+            <div class="section-head"><div><h2>مناطق التوصيل</h2><p>إذا لم تُضف مناطق، يقبل الطلب أي محافظة ومنطقة بالأجرة الافتراضية.</p></div></div>
+            <form asp-action="AddArea" method="post" class="area-form">
+                <div class="field"><label for="governorate">المحافظة</label><input id="governorate" name="governorate" placeholder="بغداد" maxlength="40" required/></div>
+                <div class="field"><label for="area">المنطقة</label><input id="area" name="area" placeholder="الكرادة" maxlength="80" required/></div>
+                <div class="field"><label for="fee">أجرة خاصة</label><span class="input-unit"><input id="fee" name="fee" type="number" min="0" inputmode="numeric" placeholder="الافتراضية"/><span>د.ع</span></span></div>
+                <button class="btn soft">@Ui.Icon("plus") إضافة</button>
+            </form>
+            <div class="table-wrap">
+                <table class="stack">
+                    <thead><tr><th>المنطقة</th><th>أجرة التوصيل</th><th>الحالة</th><th></th></tr></thead>
+                    <tbody>
+                        @if (areas.Count == 0)
+                        {
+                            <tr><td class="empty" colspan="4">لا توجد مناطق مضافة. كل المناطق مقبولة بالأجرة الافتراضية.</td></tr>
+                        }
+                        @foreach (var a in areas)
+                        {
+                            <tr>
+                                <td data-label="المنطقة"><strong>@a.Area</strong><small>@a.Governorate</small></td>
+                                <td data-label="أجرة التوصيل">@(a.Fee is long fee ? $"{fee:N0} د.ع" : $"الافتراضية ({Model.DeliveryFee:N0} د.ع)")</td>
+                                <td data-label="الحالة"><span class="status @(a.Active ? "ok" : "bad")">@(a.Active ? "مفعّلة" : "متوقفة")</span></td>
+                                <td data-label=""><form asp-action="ToggleArea" method="post"><input type="hidden" name="id" value="@a.Id"/><button class="btn ghost compact">@(a.Active ? "إيقاف" : "تفعيل")</button></form></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <aside class="editor-side">
+        <section class="panel">
+            <div class="section-head"><h2>حالة المتجر</h2></div>
+            <label class="toggle"><span><strong>المتجر مفتوح</strong><small>عند الإيقاف لا يستقبل التطبيق طلبات جديدة</small></span><input type="checkbox" name="enabled" value="true" form="settings-form" @(Model.Enabled ? "checked" : null)/></label>
+        </section>
+        <div class="side-actions">
+            <button class="btn primary" form="settings-form">حفظ الإعدادات</button>
+        </div>
+
+        <section class="panel">
+            <div class="section-head"><h2>طرق الدفع</h2></div>
+            <ul class="pay-list">
+                @foreach (var m in methods)
+                {
+                    <li>
+                        <div class="pay-name"><strong>@m.Name</strong>@if (m.IsOnline) { <small>دفع إلكتروني — غير مربوط بمزوّد</small> }</div>
+                        <span class="status @(m.Enabled ? "ok" : "bad")">@(m.Enabled ? "مفعّلة" : "متوقفة")</span>
+                        @if (!m.IsOnline)
+                        {
+                            <form asp-action="TogglePay" method="post"><input type="hidden" name="id" value="@m.Id"/><button class="btn ghost compact">@(m.Enabled ? "إيقاف" : "تفعيل")</button></form>
+                        }
+                    </li>
+                }
+            </ul>
+            <p class="note-box">الدفع الإلكتروني يبقى متوقفاً حتى يُربط مزوّد دفع حقيقي ويُختبر، ولا يظهر في التطبيق قبل ذلك.</p>
+        </section>
+    </aside>
 </div>
-<div class="panel"><h2>طرق الدفع</h2>@foreach(var m in methods){<p><strong>@m.Name</strong> <span class="status @(m.Enabled?"ok":"bad")">@(m.Enabled?"مفعّلة":"متوقفة")</span>@if(m.IsOnline){<small>إلكتروني — غير مربوط</small>}<form asp-action="TogglePay" method="post"><input type="hidden" name="id" value="@m.Id"/><button class="text-btn">@(m.Enabled?"إيقاف":"تفعيل")</button></form></p>}
-<p class="muted">لا تُعرض طريقة دفع إلكترونية في التطبيق إلا بعد ربط مزوّد حقيقي.</p></div></div>

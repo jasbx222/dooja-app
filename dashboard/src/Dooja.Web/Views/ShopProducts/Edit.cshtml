@@ -1,23 +1,94 @@
 @model Product
-@{ViewData["Title"]=Model.Id==0?"منتج جديد":"تعديل منتج";}
-<div class="page-bar"><p class="lead">سعر البيع هو الذي يُحسب في الطلب. سعر قبل الخصم للعرض فقط.</p><a class="btn ghost" asp-action="Index">رجوع</a></div>
-<form asp-action="Save" method="post" class="panel edit-form"><input asp-for="Id" type="hidden"/><div asp-validation-summary="All" class="validation"></div>
-<div class="form-grid">
-<div><label asp-for="CategoryId">التصنيف</label><select asp-for="CategoryId" asp-items="ViewBag.Categories"></select></div>
-<div><label asp-for="Name">الاسم</label><input asp-for="Name"/></div>
-<div><label asp-for="Price">سعر البيع د.ع</label><input asp-for="Price" min="0"/></div>
-<div><label asp-for="CompareAtPrice">السعر قبل الخصم (اختياري)</label><input asp-for="CompareAtPrice" min="0"/></div>
-<div><label asp-for="Stock">المخزون</label><input asp-for="Stock" min="0"/></div>
-<div class="check-group"><label><input asp-for="Active"/> معروض في المتجر</label><label><input asp-for="Featured"/> مميز</label></div>
+@{
+    var isNew = Model.Id == 0;
+    ViewData["Title"] = isNew ? "منتج جديد" : "تعديل منتج";
+    var images = Model.Images.OrderBy(x => x.SortOrder).ToList();
+}
+<div class="page-bar">
+    <p class="lead">@(isNew ? "أضف بيانات المنتج واحفظه، بعدها تكدر ترفع الصور." : "التعديلات تظهر بالتطبيق مباشرة بعد الحفظ.")</p>
+    <a class="btn ghost" asp-action="Index">رجوع للمنتجات</a>
 </div>
-<label asp-for="Description">الوصف</label><textarea asp-for="Description" rows="4"></textarea>
-<label asp-for="Specs">المواصفات</label><textarea asp-for="Specs" rows="4"></textarea>
-<div class="form-actions"><button class="btn primary">حفظ</button>@if(Model.Id!=0){<button class="btn ghost" formaction="@Url.Action("Archive", new { id = Model.Id })" formmethod="post" data-confirm="أرشفة المنتج؟" data-confirm-ok="أرشفة">أرشفة</button>}</div>
-</form>
-@if(Model.Id!=0){
-<div class="panel"><div class="section-head"><h2>الصور</h2></div>
-<div class="place-mini-grid">
-@foreach(var image in Model.Images.OrderBy(x=>x.SortOrder)){<div class="place-mini"><img src="@image.Path" alt="" style="width:100%;height:120px;object-fit:cover;border-radius:12px"/><form asp-action="DeleteImage" method="post"><input type="hidden" name="id" value="@image.Id"/><button class="text-btn">حذف</button></form></div>}
+
+<div class="editor">
+    <div class="editor-main">
+        <form id="product-form" asp-action="Save" method="post" class="panel">
+            <input asp-for="Id" type="hidden"/>
+            <div asp-validation-summary="ModelOnly" class="validation"></div>
+            <div class="section-head"><div><h2>بيانات المنتج</h2><p>الاسم والتصنيف يظهران في بطاقة المنتج بالتطبيق.</p></div></div>
+            <div class="stack-fields">
+                <div class="form-grid">
+                    <div class="field"><label asp-for="Name">اسم المنتج <span class="req">*</span></label><input asp-for="Name" placeholder="مثلاً: ذراع DualSense أبيض" autocomplete="off"/><span asp-validation-for="Name"></span></div>
+                    <div class="field"><label asp-for="CategoryId">التصنيف <span class="req">*</span></label><select asp-for="CategoryId" asp-items="ViewBag.Categories"></select><span asp-validation-for="CategoryId"></span></div>
+                </div>
+                <div class="field"><label asp-for="Description">الوصف</label><textarea asp-for="Description" rows="5" placeholder="وصف قصير يشرح المنتج للزبون"></textarea><span asp-validation-for="Description"></span></div>
+                <div class="field"><label asp-for="Specs">المواصفات</label><textarea asp-for="Specs" rows="5" placeholder="كل مواصفة بسطر، مثلاً: اللون: أبيض"></textarea><span class="field-hint">اكتب كل مواصفة بسطر منفصل.</span><span asp-validation-for="Specs"></span></div>
+            </div>
+        </form>
+
+        <section class="panel">
+            <div class="section-head"><div><h2>الصور</h2><p>أول صورة هي صورة الغلاف. الحد ثماني صور، JPG أو PNG أو WebP.</p></div></div>
+            @if (isNew)
+            {
+                <p class="empty-box">احفظ المنتج أولاً، بعدها يظهر هنا رفع الصور.</p>
+            }
+            else
+            {
+                @if (images.Count > 0)
+                {
+                    <div class="gallery">
+                        @for (var i = 0; i < images.Count; i++)
+                        {
+                            var image = images[i];
+                            <figure>
+                                <img src="@image.Path" alt="صورة @(i + 1)" loading="lazy"/>
+                                @if (i == 0) { <span class="cover">الغلاف</span> }
+                                <form asp-action="DeleteImage" method="post"><input type="hidden" name="id" value="@image.Id"/><button class="remove-btn" aria-label="حذف الصورة" data-confirm="حذف هذه الصورة؟" data-confirm-ok="حذف">@Ui.Icon("x")</button></form>
+                            </figure>
+                        }
+                    </div>
+                }
+                @if (images.Count < 8)
+                {
+                    <form asp-action="Upload" method="post" enctype="multipart/form-data" class="upload-row">
+                        <input type="hidden" name="id" value="@Model.Id"/>
+                        <label class="dropzone">
+                            @Ui.Icon("plus")
+                            <strong>اختر صوراً للرفع</strong>
+                            <span data-picked>يمكنك اختيار أكثر من صورة (متبقي @(8 - images.Count))</span>
+                            <input type="file" name="files" accept="image/jpeg,image/png,image/webp" multiple required/>
+                        </label>
+                        <button class="btn soft">رفع الصور</button>
+                    </form>
+                }
+            }
+        </section>
+    </div>
+
+    <aside class="editor-side">
+        <section class="panel">
+            <div class="section-head"><div><h2>السعر والمخزون</h2><p>سعر البيع هو الذي يُحسب في الطلب.</p></div></div>
+            <div class="stack-fields">
+                <div class="field"><label asp-for="Price">سعر البيع <span class="req">*</span></label><span class="input-unit"><input asp-for="Price" form="product-form" min="0" inputmode="numeric" data-price/><span>د.ع</span></span><span asp-validation-for="Price"></span></div>
+                <div class="field"><label asp-for="CompareAtPrice">السعر قبل الخصم</label><span class="input-unit"><input asp-for="CompareAtPrice" form="product-form" min="0" inputmode="numeric" placeholder="اختياري" data-compare/><span>د.ع</span></span><span class="field-hint">للعرض فقط، ويظهر مشطوباً بجانب سعر البيع.</span><span asp-validation-for="CompareAtPrice"></span></div>
+                <p class="discount-note" data-discount aria-live="polite"></p>
+                <div class="field"><label asp-for="Stock">الكمية المتوفرة</label><span class="input-unit"><input asp-for="Stock" form="product-form" min="0" inputmode="numeric"/><span>قطعة</span></span>@if (!isNew){<span class="field-hint">أي تغيير بالكمية يُسجل في سجل حركة المخزون.</span>}<span asp-validation-for="Stock"></span></div>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="section-head"><h2>الظهور</h2></div>
+            <div class="toggle-list">
+                <label class="toggle"><span><strong>معروض في المتجر</strong><small>يظهر للزبائن بالتطبيق</small></span><input asp-for="Active" form="product-form"/></label>
+                <label class="toggle"><span><strong>منتج مميز</strong><small>يظهر في قسم المميز</small></span><input asp-for="Featured" form="product-form"/></label>
+            </div>
+        </section>
+
+        <div class="side-actions">
+            <button class="btn primary" form="product-form">@(isNew ? "حفظ المنتج" : "حفظ التعديلات")</button>
+            @if (!isNew)
+            {
+                <button class="danger-link" form="product-form" formaction="@Url.Action("Archive", new { id = Model.Id })" formmethod="post" formnovalidate data-confirm="أرشفة المنتج؟ يختفي من المتجر وتبقى الطلبات السابقة محفوظة." data-confirm-ok="أرشفة">أرشفة المنتج</button>
+            }
+        </div>
+    </aside>
 </div>
-<form asp-action="Upload" method="post" enctype="multipart/form-data" class="form-actions"><input type="hidden" name="id" value="@Model.Id"/><input type="file" name="files" accept="image/jpeg,image/png,image/webp" multiple/><button class="btn soft">رفع</button></form>
-</div>}
