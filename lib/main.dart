@@ -11,6 +11,7 @@ import 'screens/flow.dart';
 import 'screens/more.dart';
 import 'screens/owner.dart';
 import 'screens/shop.dart';
+import 'screens/intro.dart';
 
 final navKey = GlobalKey<NavigatorState>();
 
@@ -62,8 +63,21 @@ Future<void> main() async {
         resetTo(c, const OProject());
     }
   };
-  await repo.initialize();
-  runApp(const DoojaApp());
+  if (await introSeen()) {
+    await repo.initialize();
+    runApp(const DoojaApp());
+  } else {
+    // First launch: play the opening video while the app loads.
+    final ready = repo.initialize();
+    runApp(
+      IntroApp(
+        onDone: () async {
+          await ready;
+          runApp(const DoojaApp());
+        },
+      ),
+    );
+  }
 }
 
 class DoojaApp extends StatelessWidget {
