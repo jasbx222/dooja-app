@@ -1,16 +1,126 @@
 @model ShopOrder
-@{ViewData["Title"]=Model.Number;}
-<div class="page-heading"><div><h1>@Model.Number</h1><p>@Model.CustomerName · <bdi dir="ltr">@Model.Phone</bdi> · @Model.Governorate / @Model.Area</p></div><div><a class="btn ghost" asp-action="Print" asp-route-id="@Model.Id" target="_blank">طباعة</a> <a class="btn ghost" asp-action="Index">رجوع</a></div></div>
-<div class="split-grid"><div class="panel"><div class="section-head"><h2>المنتجات</h2><span class="status pending">@Model.Status</span></div>
-<div class="table-wrap"><table><thead><tr><th>المنتج</th><th>السعر وقت الشراء</th><th>الكمية</th><th>المجموع</th></tr></thead><tbody>
-@foreach(var i in Model.Items){<tr><td>@i.Name</td><td>@i.UnitPrice.ToString("N0")</td><td>@i.Qty</td><td>@i.LineTotal.ToString("N0")</td></tr>}
-</tbody></table></div>
-<p>البضاعة @Model.Subtotal.ToString("N0") د.ع · الخصم المعروض @Model.Discount.ToString("N0") · التوصيل @Model.DeliveryFee.ToString("N0")</p>
-<p><strong>الإجمالي @Model.Total.ToString("N0") د.ع</strong> · @Model.PayMethod</p>
-<p>@Model.Address</p>
-@if(!string.IsNullOrWhiteSpace(Model.Notes)){<p>ملاحظات الزبون: @Model.Notes</p>}
+@{
+    ViewData["Title"] = Model.Number;
+    var next = (string[])ViewBag.Statuses;
+    var cancelled = Model.Status == ShopOrderStates.Cancelled;
+    var steps = new[] { ShopOrderStates.Pending, ShopOrderStates.Confirmed, ShopOrderStates.Processing, ShopOrderStates.Shipped, ShopOrderStates.Delivered };
+    var at = Array.IndexOf(steps, Model.Status);
+    if (cancelled)
+    {
+        // Show how far the order got before it was cancelled.
+        var reached = Model.Events.Where(e => e.Status != ShopOrderStates.Cancelled).Select(e => Array.IndexOf(steps, e.Status)).DefaultIfEmpty(0).Max();
+        at = reached;
+    }
+    string Cls(string s) => s == ShopOrderStates.Cancelled ? "bad" : s == ShopOrderStates.Delivered ? "ok" : s == ShopOrderStates.Pending ? "pending" : "";
+    var items = Model.Items.ToList();
+    var units = items.Sum(x => x.Qty);
+}
+<div class="order-head">
+    <div>
+        <h1>@Model.Number <span class="status lg @Cls(Model.Status)">@Model.Status</span></h1>
+        <p>طلب بتاريخ <span class="date">@Ui.Local(Model.CreatedAt)</span> · @units قطعة · @Model.PayMethod</p>
+    </div>
+    <div class="row-actions">
+        <a class="btn ghost" asp-action="Print" asp-route-id="@Model.Id" target="_blank">طباعة الفاتورة</a>
+        <a class="btn ghost" asp-action="Index">رجوع للطلبات</a>
+    </div>
 </div>
-<div>
-@if(((string[])ViewBag.Statuses).Length>0){<form asp-action="Status" method="post" class="panel"><input type="hidden" name="id" value="@Model.Id"/><label>الحالة التالية</label><select name="status">@foreach(var s in (string[])ViewBag.Statuses){<option>@s</option>}</select><label>ملاحظة إدارية</label><textarea name="note" rows="3"></textarea><div class="form-actions"><button class="btn primary">تحديث الحالة</button></div></form>}
-<div class="panel"><h2>سجل الحالة</h2>@foreach(var e in Model.Events.OrderBy(x=>x.Id)){<p><strong>@e.Status</strong> · @e.Actor<small>@Ui.Local(e.CreatedAt) — @e.Note</small></p>}</div>
-</div></div>
+
+<section class="panel" aria-label="مراحل الطلب">
+    @if (cancelled)
+    {
+        <div class="cancel-banner">@Ui.Icon("circle-x") هذا الطلب ملغي. البضاعة رجعت للمخزون.</div>
+    }
+    else
+    {
+        <ol class="order-steps">
+            @for (var i = 0; i < steps.Length; i++)
+            {
+                var cls = i < at || (i == at && i == steps.Length - 1) ? "done" : i == at ? "current" : "";
+                <li class="@cls" aria-current="@(i == at ? "step" : null)"><span class="dot">@if (cls == "done") { @Ui.Icon("circle-check") } else { @(i + 1) }</span><span class="label">@steps[i]</span></li>
+            }
+        </ol>
+    }
+</section>
+
+<div class="editor block">
+    <div class="editor-main">
+        <section class="panel">
+            <div class="section-head"><div><h2>المنتجات</h2><p>الأسعار كما كانت وقت الشراء.</p></div></div>
+            <div class="table-wrap">
+                <table class="stack">
+                    <thead><tr><th>المنتج</th><th>سعر القطعة</th><th>الكمية</th><th>المجموع</th></tr></thead>
+                    <tbody>
+                        @foreach (var i in items)
+                        {
+                            <tr>
+                                <td data-label="المنتج"><div class="product-cell"><span class="thumb">@(i.Name.Length > 0 ? i.Name[..1] : "")</span><strong>@i.Name</strong></div></td>
+                                <td data-label="سعر القطعة" class="num-cell">@i.UnitPrice.ToString("N0") د.ع</td>
+                                <td data-label="الكمية" class="num-cell">× @i.Qty</td>
+                                <td data-label="المجموع" class="num-cell"><strong>@i.LineTotal.ToString("N0") د.ع</strong></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <dl class="summary">
+                <div><dt>مجموع البضاعة</dt><dd>@Model.Subtotal.ToString("N0") د.ع</dd></div>
+                <div><dt>أجرة التوصيل</dt><dd>@(Model.DeliveryFee == 0 ? "مجاني" : $"{Model.DeliveryFee:N0} د.ع")</dd></div>
+                @if (Model.Discount > 0)
+                {
+                    <div class="saving"><dt>توفير الزبون من الخصومات</dt><dd>@Model.Discount.ToString("N0") د.ع</dd></div>
+                }
+                <div class="total"><dt>الإجمالي المطلوب</dt><dd>@Model.Total.ToString("N0") د.ع</dd></div>
+            </dl>
+            @if (!string.IsNullOrWhiteSpace(Model.Notes))
+            {
+                <div class="customer-note"><strong>ملاحظة الزبون</strong>@Model.Notes</div>
+            }
+        </section>
+
+        <section class="panel">
+            <div class="section-head"><h2>سجل الحالة</h2></div>
+            <ol class="timeline">
+                @foreach (var e in Model.Events.OrderByDescending(x => x.Id))
+                {
+                    <li class="@(e.Status == ShopOrderStates.Cancelled ? "bad" : null)">
+                        <strong>@e.Status</strong>
+                        <small><span class="date">@Ui.Local(e.CreatedAt)</span> · @e.Actor</small>
+                        @if (!string.IsNullOrWhiteSpace(e.Note) && e.Note != e.Status) { <p>@e.Note</p> }
+                    </li>
+                }
+            </ol>
+        </section>
+    </div>
+
+    <aside class="editor-side">
+        <section class="panel">
+            <div class="section-head"><h2>الزبون والتوصيل</h2></div>
+            <dl class="info-list">
+                <div>@Ui.Icon("users")<span><dt>الاسم</dt><dd>@Model.CustomerName</dd></span></div>
+                <div>@Ui.Icon("bell")<span><dt>الهاتف</dt><dd><a href="tel:@Model.Phone" dir="ltr">@Model.Phone</a></dd></span></div>
+                <div>@Ui.Icon("map-pin")<span><dt>العنوان</dt><dd>@Model.Governorate / @Model.Area@if (!string.IsNullOrWhiteSpace(Model.Address)) {<br/>@Model.Address}</dd></span></div>
+                <div>@Ui.Icon("wallet")<span><dt>الدفع</dt><dd>@Model.PayMethod</dd></span></div>
+            </dl>
+        </section>
+
+        @if (next.Length > 0)
+        {
+            <form asp-action="Status" method="post" class="panel status-actions">
+                <input type="hidden" name="id" value="@Model.Id"/>
+                <div class="section-head"><div><h2>تحديث الحالة</h2><p>الزبون يشوف الحالة الجديدة بالتطبيق.</p></div></div>
+                <div class="field"><label for="note">ملاحظة (اختياري)</label><textarea id="note" name="note" rows="3" maxlength="300" placeholder="مثلاً: سيصل الطلب غداً"></textarea></div>
+                <div class="next-buttons">
+                    @foreach (var s in next.Where(x => x != ShopOrderStates.Cancelled))
+                    {
+                        <button class="btn primary" name="status" value="@s">نقل إلى «@s»</button>
+                    }
+                    @if (next.Contains(ShopOrderStates.Cancelled))
+                    {
+                        <button class="btn danger-soft" name="status" value="@ShopOrderStates.Cancelled" data-confirm="إلغاء الطلب @Model.Number؟ ترجع البضاعة للمخزون." data-confirm-ok="إلغاء الطلب">إلغاء الطلب</button>
+                    }
+                </div>
+            </form>
+        }
+    </aside>
+</div>
