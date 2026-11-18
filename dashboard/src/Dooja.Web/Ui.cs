@@ -26,6 +26,16 @@ public static class Ui
         _ => "زبون"
     };
 
+    static readonly TimeZoneInfo Baghdad = TimeZoneInfo.FindSystemTimeZoneById("Asia/Baghdad");
+
+    /// A date that stays one left-to-right unit inside RTL text and never wraps.
+    public static IHtmlContent Date(DateOnly? day) =>
+        day is DateOnly d ? new HtmlString($"<bdi class=\"date\" dir=\"ltr\">{d:yyyy-MM-dd}</bdi>") : HtmlString.Empty;
+
+    /// A stored UTC time shown in Baghdad time, the time staff work in.
+    public static IHtmlContent Local(DateTime utc) =>
+        new HtmlString($"<bdi class=\"date\" dir=\"ltr\">{TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), Baghdad):yyyy-MM-dd HH:mm}</bdi>");
+
     public static string Initial(string? name) => string.IsNullOrWhiteSpace(name) ? "ض" : name.Trim()[..1];
 
     public static string PageHref(HttpRequest request, int page)

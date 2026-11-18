@@ -8,7 +8,7 @@
             <tr>
                 <td data-label="رمز الحجز"><a dir="ltr" href="/Bookings?q=@Uri.EscapeDataString(b.Code)"><strong>@b.Code</strong></a></td>
                 <td data-label="المكان / الزبون"><strong>@b.Place?.Name</strong><small>@b.User?.Name</small></td>
-                <td data-label="الموعد">@b.Day.ToString("yyyy-MM-dd")<small>@b.Time · @b.Duration</small></td>
+                <td data-label="الموعد">@Ui.Date(b.Day)<small>@b.Time · @b.Duration</small></td>
                 <td data-label="المبلغ">@b.Total.ToString("N0") د.ع<small>@b.PayMethod</small></td>
                 <td data-label="الحالة"><span class="status @Ui.StatusClass(b.Status)">@b.Status</span></td>
             </tr>

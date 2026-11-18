@@ -39,22 +39,25 @@
     document.addEventListener("submit", function (event) {
         var form = event.target;
         if (!(form instanceof HTMLFormElement) || form.closest("dialog")) return;
-        var message = form.getAttribute("data-confirm");
+        var button = event.submitter;
+        var message = (button && button.getAttribute("data-confirm")) || form.getAttribute("data-confirm");
         if (message && form.dataset.confirmed !== "yes") {
             event.preventDefault();
-            ask(message, form.getAttribute("data-confirm-ok")).then(function (ok) {
+            var okLabel = (button && button.getAttribute("data-confirm-ok")) || form.getAttribute("data-confirm-ok");
+            ask(message, okLabel).then(function (ok) {
                 if (!ok) return;
                 form.dataset.confirmed = "yes";
-                form.requestSubmit();
+                form.requestSubmit(button || undefined);
+                delete form.dataset.confirmed;
             });
             return;
         }
-        var button = event.submitter;
         if (button) button.setAttribute("aria-busy", "true");
         document.documentElement.classList.add("is-loading");
     });
 
     document.addEventListener("click", function (event) {
+        if (event.target.closest("[data-print]")) { window.print(); return; }
         var link = event.target.closest("a");
         if (!link || link.target === "_blank" || link.origin !== location.origin || link.hasAttribute("download")) return;
         if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;

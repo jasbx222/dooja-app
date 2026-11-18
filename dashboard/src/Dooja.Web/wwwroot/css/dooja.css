@@ -303,3 +303,15 @@ blockquote strong { color: var(--p); font-size: 12px; }
 .place-visual.padel { background-image: url("../img/padel.jpg"); }
 .place-visual.pool { background-image: url("../img/pool.jpg"); }
 .place-visual.reel { background-image: url("../img/reel.jpg"); }
+
+/* Dates and times: one left-to-right unit inside RTL tables, never split. */
+.date { direction: ltr; unicode-bidi: isolate; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.chart-col small, .chart-col strong { white-space: nowrap; }
+.product-cell { display: flex; align-items: center; gap: 12px; }
+.product-cell .thumb { display: grid; place-items: center; color: var(--mu); font-weight: 700; }
+.toolbar input, .toolbar select { min-height: 40px; border: 1px solid transparent; border-radius: var(--r-control); background: var(--g); padding: 6px 12px; outline: none; }
+.toolbar input:focus, .toolbar select:focus { background: var(--wh); border-color: var(--p); }
+.toolbar input[name="q"] { flex: 1 1 220px; }
+.stock-low { color: var(--wr); font-weight: 700; }
+.stock-out { color: var(--rd); font-weight: 700; }
+.qty-input { width: 88px; }

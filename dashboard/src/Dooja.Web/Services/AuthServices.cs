@@ -41,3 +41,18 @@ public sealed class OtpStore
     }
     static string Hash(string phone, string code) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"{phone}:{code}")));
 }
+
+/// Locks a phone number after repeated wrong passwords, on top of the
+/// per-IP rate limit, so one account can't be guessed from many addresses.
+public sealed class LoginGuard
+{
+    const int MaxFailures = 5;
+    static readonly TimeSpan Window = TimeSpan.FromMinutes(15);
+    private readonly record struct Entry(int Failures, DateTime Since);
+    private readonly ConcurrentDictionary<string, Entry> entries = new();
+    public bool IsLocked(string key) =>
+        entries.TryGetValue(key, out var e) && e.Failures >= MaxFailures && DateTime.UtcNow - e.Since < Window;
+    public void Fail(string key) => entries.AddOrUpdate(key, _ => new Entry(1, DateTime.UtcNow),
+        (_, e) => DateTime.UtcNow - e.Since >= Window ? new Entry(1, DateTime.UtcNow) : e with { Failures = e.Failures + 1 });
+    public void Succeed(string key) => entries.TryRemove(key, out _);
+}

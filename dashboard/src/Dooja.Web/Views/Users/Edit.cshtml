@@ -14,6 +14,7 @@
             <div class="field"><label asp-for="Phone">رقم الهاتف</label><input asp-for="Phone" dir="ltr" inputmode="tel" autocomplete="tel" placeholder="07xxxxxxxxx"/><span asp-validation-for="Phone"></span></div>
             <div class="field"><label asp-for="Role">الدور</label><select asp-for="Role"><option value="Customer">زبون</option><option value="Owner">صاحب مكان</option></select><span asp-validation-for="Role"></span></div>
             <div class="field"><label asp-for="Points">النقاط</label><input asp-for="Points" min="0"/><span asp-validation-for="Points"></span></div>
+            <div class="field"><label for="newPassword">@(Model.Id == 0 ? "كلمة السر" : "كلمة سر جديدة")</label><input id="newPassword" name="newPassword" type="password" dir="ltr" autocomplete="new-password" minlength="6" maxlength="100" placeholder="@(Model.Id == 0 ? "6 أحرف على الأقل" : "اتركها فارغة حتى تبقى نفسها")"/><span class="field-validation-error">@Html.ValidationMessage("newPassword")</span></div>
         </div>
     </fieldset>
     <fieldset>

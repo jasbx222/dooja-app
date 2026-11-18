@@ -32,7 +32,7 @@ Development app accounts:
 - Customer `07700000001` — حسين علي
 - Owner `07700000002` — أبو علي
 - These demo phones have no password until someone registers that number once. Registration then sets the password. Auth endpoints are rate-limited.
-- New accounts are Customers. Only a dashboard Admin can assign Owner. Admin phones cannot sign in through the app API.
+- New accounts are Customers. Only a dashboard Admin can assign Owner. Admin phones cannot sign in through the app API. Registering a number that already has an account is refused, even if it has no password yet; an Admin sets or resets passwords from the user's edit page. Five wrong passwords lock that number for 15 minutes.
 
 ## Real persistence versus sample records
 
@@ -115,7 +115,7 @@ Booking requests accept an optional `offerId`. The server checks place ownership
 
 ### Authenticated customer/owner routes
 
-- `GET /api/auth/me`; `PUT /api/auth/me` — `{ name, governorate, area, birth }`
+- `GET /api/auth/me`; `PUT /api/auth/me` — `{ name, governorate, area, birth }`; `DELETE /api/auth/me` — deletes the account: wipes personal data and the password, closes the account, cancels upcoming bookings and hides an owner's places. Bookings and orders stay as anonymous history.
 - `GET /api/bookings`; `GET /api/bookings/{id}` — only the current user's bookings
 - `POST /api/bookings` — `{ placeId, day, time, hours, people, payMethod, wait?, offerId? }`
 - `POST /api/bookings/{id}/cancel`

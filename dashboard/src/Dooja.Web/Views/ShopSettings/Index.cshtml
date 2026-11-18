@@ -1,6 +1,6 @@
 @model StoreSetting
 @{ViewData["Title"]="إعدادات المتجر"; var areas=(IEnumerable<DeliveryArea>)ViewBag.Areas; var methods=(IEnumerable<PaymentMethod>)ViewBag.Methods;}
-<div class="page-heading"><div><h1>إعدادات المتجر</h1><p>الدفع الإلكتروني يبقى متوقفاً حتى يُربط مزوّد دفع حقيقي ويُختبر.</p></div></div>
+<div class="page-bar"><p class="lead">الدفع الإلكتروني يبقى متوقفاً حتى يُربط مزوّد دفع حقيقي ويُختبر.</p></div>
 <form asp-action="Save" method="post" class="panel edit-form">
 <div class="form-grid">
 <div class="check-group"><label><input type="checkbox" name="enabled" value="true" @(Model.Enabled ? "checked" : null)/> المتجر مفتوح</label></div>

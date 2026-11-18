@@ -25,7 +25,7 @@
                 <tr>
                     <td data-label="الحجز"><strong dir="ltr">@b.Code</strong><small>@b.PayMethod</small></td>
                     <td data-label="المكان / الزبون"><strong>@b.Place?.Name</strong><small>@b.User?.Name · <span dir="ltr">@b.User?.Phone</span></small></td>
-                    <td data-label="التاريخ والوقت">@b.Day.ToString("yyyy-MM-dd")<small>@b.Time</small></td>
+                    <td data-label="التاريخ والوقت">@Ui.Date(b.Day)<small>@b.Time</small></td>
                     <td data-label="التفاصيل">@b.Total.ToString("N0") د.ع<small>@b.People أشخاص · @b.Duration</small></td>
                     <td data-label="الحالة"><span class="status @Ui.StatusClass(b.Status)">@b.Status</span>@if (b.Arrived) { <small>تم الوصول</small> }</td>
                     <td data-label="الإجراء">

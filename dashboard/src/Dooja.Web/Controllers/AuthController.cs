@@ -10,15 +10,18 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 namespace Dooja.Web.Controllers;
 [AutoValidateAntiforgeryToken]
-public class AuthController(DoojaDb db) : Controller
+public class AuthController(DoojaDb db, LoginGuard guard) : Controller
 {
     [HttpGet] public IActionResult Login() => View(new LoginVm());
     [HttpPost, EnableRateLimiting("auth")]
     public async Task<IActionResult> Login(LoginVm vm)
     {
         if (!ModelState.IsValid) return View(vm);
+        var key = "admin:" + vm.Phone.Trim();
+        if (guard.IsLocked(key)) { ModelState.AddModelError("", "محاولات كثيرة. حاول بعد 15 دقيقة"); return View(vm); }
         var u = await db.Users.FirstOrDefaultAsync(x => x.Phone == vm.Phone && x.Role == "Admin" && x.Active);
-        if (u?.PasswordHash == null || new PasswordHasher<AppUser>().VerifyHashedPassword(u, u.PasswordHash, vm.Password) == PasswordVerificationResult.Failed) { ModelState.AddModelError("", "رقم الهاتف أو كلمة المرور غير صحيحة"); return View(vm); }
+        if (u?.PasswordHash == null || new PasswordHasher<AppUser>().VerifyHashedPassword(u, u.PasswordHash, vm.Password) == PasswordVerificationResult.Failed) { guard.Fail(key); ModelState.AddModelError("", "رقم الهاتف أو كلمة المرور غير صحيحة"); return View(vm); }
+        guard.Succeed(key);
         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(new ClaimsIdentity(TokenService.Claims(u), CookieAuthenticationDefaults.AuthenticationScheme))); return RedirectToAction("Index", "Home");
     }
     [HttpPost] public async Task<IActionResult> Logout() { await HttpContext.SignOutAsync(); return RedirectToAction(nameof(Login)); }

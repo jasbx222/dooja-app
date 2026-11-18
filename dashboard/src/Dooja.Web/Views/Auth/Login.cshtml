@@ -16,7 +16,7 @@
         <p class="kicker">لوحة الإدارة</p>
         <h2>سجّل دخولك</h2>
         <p class="lead">حساب الإدارة فقط.</p>
-        <form asp-action="Login" method="post">
+        <form action="@Url.RouteUrl("default", new { controller = "Auth", action = "Login" })" method="post" asp-antiforgery="true">
             <div asp-validation-summary="All" class="validation"></div>
             <div class="field"><label asp-for="Phone">رقم الهاتف</label><input asp-for="Phone" dir="ltr" inputmode="tel" autocomplete="username" placeholder="07xxxxxxxxx"/></div>
             <div class="field"><label asp-for="Password">كلمة المرور</label><input asp-for="Password" dir="ltr" autocomplete="current-password"/></div>

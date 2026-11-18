@@ -31,6 +31,7 @@ if (string.IsNullOrEmpty(key)) { if (!builder.Environment.IsDevelopment()) throw
 if (Encoding.UTF8.GetByteCount(key) < 32) throw new InvalidOperationException("Jwt key must be at least 32 bytes.");
 builder.Services.AddSingleton(new TokenService(key));
 builder.Services.AddSingleton<OtpStore>();
+builder.Services.AddSingleton<LoginGuard>();
 builder.Services.Configure<SmsOptions>(builder.Configuration.GetSection("Sms"));
 builder.Services.AddHttpClient("sms", c => c.Timeout = TimeSpan.FromSeconds(15));
 builder.Services.AddSingleton<ISmsSender, TwilioSmsSender>();
@@ -56,7 +57,11 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope()) await Seed.Run(scope.ServiceProvider.GetRequiredService<DoojaDb>(), app.Configuration, app.Environment);
 app.UseForwardedHeaders();
 if (!app.Environment.IsDevelopment()) { app.UseExceptionHandler(); app.UseHsts(); app.UseHttpsRedirection(); }
-app.Use(async (ctx, next) => { ctx.Response.Headers["X-Content-Type-Options"] = "nosniff"; ctx.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin"; ctx.Response.Headers["X-Frame-Options"] = "SAMEORIGIN"; ctx.Response.Headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"; await next(); });
+app.Use(async (ctx, next) => { ctx.Response.Headers["X-Content-Type-Options"] = "nosniff"; ctx.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin"; ctx.Response.Headers["X-Frame-Options"] = "SAMEORIGIN"; ctx.Response.Headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
+    // Strict CSP for the server-rendered dashboard; the Flutter app under /app and the JSON API are left alone.
+    if (!ctx.Request.Path.StartsWithSegments("/app") && !ctx.Request.Path.StartsWithSegments("/api"))
+        ctx.Response.Headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'";
+    await next(); });
 var flutterAppRoot = Path.Combine(app.Environment.WebRootPath, "app");
 if (Directory.Exists(flutterAppRoot))
 {

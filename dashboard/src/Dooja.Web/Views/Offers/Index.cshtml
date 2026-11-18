@@ -19,7 +19,7 @@
                     <td data-label="المكان">@o.Place?.Name<small>@o.Area</small></td>
                     <td data-label="السعر"><strong class="price">@o.NewPrice.ToString("N0")</strong><small><del>@o.OldPrice.ToString("N0")</del> د.ع</small></td>
                     <td data-label="التفاعل">@o.Views.ToString("N0") مشاهدة<small>@o.Clicks.ToString("N0") نقرة · @o.Books حجز</small></td>
-                    <td data-label="الانتهاء">@o.ExpiryText<small>@o.ExpiresOn?.ToString("yyyy-MM-dd")</small></td>
+                    <td data-label="الانتهاء">@o.ExpiryText<small>@Ui.Date(o.ExpiresOn)</small></td>
                     <td data-label="الحالة"><span class="status @(o.Active ? "ok" : "pending")">@(o.Active ? "فعّال" : "متوقف")</span></td>
                     <td data-label="إجراء">
                         <div class="row-actions">

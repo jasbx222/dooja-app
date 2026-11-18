@@ -1,8 +1,48 @@
 @model IEnumerable<Product>
-@{ViewData["Title"]="المنتجات";}
-<div class="page-heading"><div><h1>المنتجات</h1><p>الأسعار والمخزون من قاعدة البيانات. الأرشفة تُبقي الطلبات السابقة.</p></div><a class="btn primary" asp-action="Create">منتج جديد</a></div>
-<form method="get" class="toolbar"><input name="q" value="@ViewBag.Q" placeholder="بحث بالاسم"/><button class="btn ghost">بحث</button></form>
-<div class="panel"><div class="table-wrap"><table><thead><tr><th>المنتج</th><th>التصنيف</th><th>السعر</th><th>المخزون</th><th>الحالة</th><th></th></tr></thead><tbody>
-@if(!Model.Any()){<tr><td class="empty" colspan="6">لا توجد منتجات. أضف منتجاً من الداشبورد ليظهر في التطبيق.</td></tr>}
-@foreach(var p in Model){<tr><td><strong>@p.Name</strong>@if(p.Featured){<small>مميز</small>}</td><td>@p.Category?.Name</td><td>@p.Price.ToString("N0") د.ع @if(p.CompareAtPrice is long was){<small><del>@was.ToString("N0")</del></small>}</td><td>@p.Stock</td><td><span class="status @(p.Active?"ok":"bad")">@(p.Active?"معروض":"مخفي")</span></td><td><a class="btn ghost compact" asp-action="Edit" asp-route-id="@p.Id">تعديل</a></td></tr>}
-</tbody></table></div></div>
+@{
+    ViewData["Title"] = "المنتجات";
+    ViewData["Search"] = "ابحث باسم المنتج";
+    ViewData["Q"] = ViewBag.Q as string;
+    var searching = !string.IsNullOrWhiteSpace(ViewBag.Q as string);
+}
+<div class="page-bar">
+    <p class="lead">@Model.Count().ToString("N0") منتج. الأسعار والمخزون من قاعدة البيانات، والأرشفة تُبقي الطلبات السابقة.</p>
+    <a class="btn primary" asp-action="Create">@Ui.Icon("plus") منتج جديد</a>
+</div>
+<section class="panel table-panel">
+    <div class="table-wrap">
+        <table class="stack">
+            <thead><tr><th>المنتج</th><th>التصنيف</th><th>السعر</th><th>المخزون</th><th>الحالة</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var p in Model)
+            {
+                var img = p.Images.OrderBy(i => i.SortOrder).Select(i => i.Path).FirstOrDefault();
+                <tr>
+                    <td data-label="المنتج">
+                        <div class="product-cell">
+                            @if (img != null)
+                            {
+                                <img class="thumb" src="@img" alt="" loading="lazy"/>
+                            }
+                            else
+                            {
+                                <span class="thumb" aria-hidden="true">@Ui.Initial(p.Name)</span>
+                            }
+                            <span><strong>@p.Name</strong>@if (p.Featured) { <small>مميز</small> }</span>
+                        </div>
+                    </td>
+                    <td data-label="التصنيف">@p.Category?.Name</td>
+                    <td data-label="السعر"><strong class="price">@p.Price.ToString("N0")</strong><small>د.ع @if (p.CompareAtPrice is long was) { <del>@was.ToString("N0")</del> }</small></td>
+                    <td data-label="المخزون"><span class="@(p.Stock == 0 ? "stock-out" : p.Stock <= 5 ? "stock-low" : null)">@p.Stock</span></td>
+                    <td data-label="الحالة"><span class="status @(p.Active ? "ok" : "bad")">@(p.Active ? "معروض" : "مخفي")</span></td>
+                    <td data-label="إجراء"><a class="btn ghost compact" asp-action="Edit" asp-route-id="@p.Id">@Ui.Icon("pencil") تعديل</a></td>
+                </tr>
+            }
+            @if (!Model.Any())
+            {
+                <tr><td class="empty" colspan="6">@(searching ? "ماكو منتجات مطابقة للبحث." : "ماكو منتجات بعد. أضف منتجاً حتى يظهر بالتطبيق.")</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</section>

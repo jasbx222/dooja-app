@@ -5,4 +5,4 @@
 <table><thead><tr><th>المنتج</th><th>السعر</th><th>الكمية</th><th>المجموع</th></tr></thead><tbody>
 @foreach(var i in Model.Items){<tr><td>@i.Name</td><td>@i.UnitPrice.ToString("N0")</td><td>@i.Qty</td><td>@i.LineTotal.ToString("N0")</td></tr>}
 </tbody></table><p>التوصيل @Model.DeliveryFee.ToString("N0") د.ع</p><h2>الإجمالي @Model.Total.ToString("N0") د.ع · @Model.PayMethod · @Model.Status</h2>
-<button class="btn primary" onclick="print()">طباعة</button></body></html>
+<button class="btn primary" type="button" data-print>طباعة</button><script src="~/js/dooja.js" asp-append-version="true"></script></body></html>

@@ -9,6 +9,7 @@ public class BookingService(DoojaDb db)
     public async Task<(Booking? Booking, string? Error)> Create(int userId, string placeId, DateOnly day, string time, int hours, int people, string pay, bool wait, string? offerId = null)
     {
         if (day < Today || day > Today.AddYears(1) || hours < 1 || hours > 12 || people < 1 || people > 100 || !TimeOnly.TryParseExact(time, "HH:mm", out var start) || start.Hour + hours > 24) return (null, "تفاصيل الحجز غير صحيحة، الوقت بصيغة HH:mm والتاريخ YYYY-MM-DD");
+        if (day == Today && start <= TimeOnly.FromDateTime(TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.UtcNow, "Asia/Baghdad"))) return (null, "هذا الوقت فات، اختار وقت لاحق");
         if (pay != "كاش بالمكان") return (null, "الدفع الإلكتروني غير متاح. المتاح كاش بالمكان فقط");
         await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         var p = await db.Places.FirstOrDefaultAsync(x => x.Id == placeId && x.Active);

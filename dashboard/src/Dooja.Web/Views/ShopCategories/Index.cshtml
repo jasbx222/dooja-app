@@ -1,7 +1,28 @@
 @model IEnumerable<ProductCategory>
-@{ViewData["Title"]="تصنيفات المتجر";}
-<div class="page-heading"><div><h1>التصنيفات</h1><p>تظهر في التطبيق بالترتيب الذي تحدده هنا.</p></div><a class="btn primary" asp-action="Create">تصنيف جديد</a></div>
-<div class="panel"><div class="table-wrap"><table><thead><tr><th>الاسم</th><th>الترتيب</th><th>الحالة</th><th></th></tr></thead><tbody>
-@if(!Model.Any()){<tr><td class="empty" colspan="4">لا توجد تصنيفات بعد.</td></tr>}
-@foreach(var c in Model){<tr><td><strong>@c.Name</strong></td><td>@c.SortOrder</td><td><span class="status @(c.Archived?"bad":c.Active?"ok":"pending")">@(c.Archived?"مؤرشف":c.Active?"ظاهر":"مخفي")</span></td><td>@if(!c.Archived){<a class="btn ghost compact" asp-action="Edit" asp-route-id="@c.Id">تعديل</a>}</td></tr>}
-</tbody></table></div></div>
+@{ ViewData["Title"] = "تصنيفات المتجر"; }
+<div class="page-bar">
+    <p class="lead">تظهر في التطبيق بالترتيب الذي تحدده هنا.</p>
+    <a class="btn primary" asp-action="Create">@Ui.Icon("plus") تصنيف جديد</a>
+</div>
+<section class="panel table-panel">
+    <div class="table-wrap">
+        <table class="stack">
+            <thead><tr><th>الاسم</th><th>الترتيب</th><th>الحالة</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var c in Model)
+            {
+                <tr>
+                    <td data-label="الاسم"><strong>@c.Name</strong></td>
+                    <td data-label="الترتيب">@c.SortOrder</td>
+                    <td data-label="الحالة"><span class="status @(c.Archived ? "bad" : c.Active ? "ok" : "pending")">@(c.Archived ? "مؤرشف" : c.Active ? "ظاهر" : "مخفي")</span></td>
+                    <td data-label="إجراء">@if (!c.Archived) { <a class="btn ghost compact" asp-action="Edit" asp-route-id="@c.Id">@Ui.Icon("pencil") تعديل</a> }</td>
+                </tr>
+            }
+            @if (!Model.Any())
+            {
+                <tr><td class="empty" colspan="4">ماكو تصنيفات بعد.</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</section>

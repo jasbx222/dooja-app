@@ -1,6 +1,6 @@
 @model Product
 @{ViewData["Title"]=Model.Id==0?"منتج جديد":"تعديل منتج";}
-<div class="page-heading"><div><h1>@ViewData["Title"]</h1><p>سعر البيع هو الذي يُحسب في الطلب. سعر قبل الخصم للعرض فقط.</p></div><a class="btn ghost" asp-action="Index">رجوع</a></div>
+<div class="page-bar"><p class="lead">سعر البيع هو الذي يُحسب في الطلب. سعر قبل الخصم للعرض فقط.</p><a class="btn ghost" asp-action="Index">رجوع</a></div>
 <form asp-action="Save" method="post" class="panel edit-form"><input asp-for="Id" type="hidden"/><div asp-validation-summary="All" class="validation"></div>
 <div class="form-grid">
 <div><label asp-for="CategoryId">التصنيف</label><select asp-for="CategoryId" asp-items="ViewBag.Categories"></select></div>
@@ -12,7 +12,7 @@
 </div>
 <label asp-for="Description">الوصف</label><textarea asp-for="Description" rows="4"></textarea>
 <label asp-for="Specs">المواصفات</label><textarea asp-for="Specs" rows="4"></textarea>
-<div class="form-actions"><button class="btn primary">حفظ</button>@if(Model.Id!=0){<button class="btn ghost" formaction="@Url.Action("Archive", new { id = Model.Id })" formmethod="post" onclick="return confirm('أرشفة المنتج؟')">أرشفة</button>}</div>
+<div class="form-actions"><button class="btn primary">حفظ</button>@if(Model.Id!=0){<button class="btn ghost" formaction="@Url.Action("Archive", new { id = Model.Id })" formmethod="post" data-confirm="أرشفة المنتج؟" data-confirm-ok="أرشفة">أرشفة</button>}</div>
 </form>
 @if(Model.Id!=0){
 <div class="panel"><div class="section-head"><h2>الصور</h2></div>

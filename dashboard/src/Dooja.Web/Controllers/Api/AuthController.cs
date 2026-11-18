@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 namespace Dooja.Web.Controllers.Api;
 [Route("api/auth")]
-public class AuthController(DoojaDb db, OtpStore otp, TokenService tokens, ISmsSender sms, IWebHostEnvironment env, IConfiguration config) : ApiBase(db)
+public class AuthController(DoojaDb db, OtpStore otp, TokenService tokens, ISmsSender sms, IWebHostEnvironment env, IConfiguration config, LoginGuard guard) : ApiBase(db)
 {
     static readonly PasswordHasher<AppUser> Passwords = new();
     public record PhoneRequest([Required, RegularExpression(@"07\d{9}")] string Phone);
@@ -30,15 +30,11 @@ public class AuthController(DoojaDb db, OtpStore otp, TokenService tokens, ISmsS
         if (name.Length < 2) return BadRequest(new { error = "اكتب اسمك" });
         if (input.Password.Length < 6) return BadRequest(new { error = "كلمة السر لازم تكون 6 حروف أو أكثر" });
         var u = await Db.Users.FirstOrDefaultAsync(x => x.Phone == input.Phone);
-        if (u != null)
-        {
-            if (!u.Active || u.Role == "Admin") return Unauthorized();
-            if (u.PasswordHash != null) return Conflict(new { error = "هذا الرقم مسجل مسبقاً. سجّل دخول بكلمة السر" });
-            if (u.Name == "مستخدم جديد") u.Name = name;
-            u.PasswordHash = Passwords.HashPassword(u, input.Password);
-            await Db.SaveChangesAsync();
-            return AuthResult(u);
-        }
+        // Never let a stranger claim an existing account by registering its
+        // number, even one that has no password yet (e.g. created by an admin).
+        if (u != null) return Conflict(new { error = u.PasswordHash != null
+            ? "هذا الرقم مسجل مسبقاً. سجّل دخول بكلمة السر"
+            : "هذا الرقم مسجل مسبقاً. تواصل مع إدارة ضوجة حتى تعيّن كلمة السر" });
         u = new AppUser { Phone = input.Phone, Name = name, Role = "Customer" };
         u.PasswordHash = Passwords.HashPassword(u, input.Password);
         Db.Users.Add(u);
@@ -49,10 +45,17 @@ public class AuthController(DoojaDb db, OtpStore otp, TokenService tokens, ISmsS
     [HttpPost("login"), AllowAnonymous, EnableRateLimiting("auth")]
     public async Task<IActionResult> Login(PasswordLoginRequest input)
     {
+        var key = "app:" + input.Phone;
+        if (guard.IsLocked(key)) return StatusCode(429, new { error = "محاولات كثيرة. حاول بعد 15 دقيقة" });
         var u = await Db.Users.FirstOrDefaultAsync(x => x.Phone == input.Phone);
-        if (u == null || !u.Active || u.Role == "Admin") return Unauthorized(new { error = "رقم الهاتف أو كلمة السر غير صحيحة" });
-        if (u.PasswordHash == null) return BadRequest(new { error = "هذا الحساب ما عنده كلمة سر. استخدم إنشاء حساب لنفس الرقم حتى تضيف كلمة سر" });
-        if (!PasswordOk(u, input.Password)) return Unauthorized(new { error = "رقم الهاتف أو كلمة السر غير صحيحة" });
+        if (u == null || !u.Active || u.Role == "Admin" || !PasswordOk(u, input.Password))
+        {
+            guard.Fail(key);
+            return Unauthorized(new { error = u is { PasswordHash: null, Active: true } && u.Role != "Admin"
+                ? "هذا الحساب ما عنده كلمة سر بعد. تواصل مع إدارة ضوجة"
+                : "رقم الهاتف أو كلمة السر غير صحيحة" });
+        }
+        guard.Succeed(key);
         return AuthResult(u);
     }
 
@@ -81,6 +84,44 @@ public class AuthController(DoojaDb db, OtpStore otp, TokenService tokens, ISmsS
         if (!u.Active || u.Role == "Admin") return Unauthorized(); return AuthResult(u);
     }
     [HttpGet("me")] public async Task<IActionResult> Me() => Ok(await Db.Users.FindAsync(UserId));
+
+    /// Deletes the caller's account (required by the app stores). Personal data
+    /// and the password are wiped and the account is closed; bookings and
+    /// orders stay as anonymous history for the venues and the store.
+    [HttpDelete("me")]
+    public async Task<IActionResult> DeleteMe()
+    {
+        var u = await Db.Users.FindAsync(UserId);
+        if (u == null) return NotFound();
+        if (u.Role == "Admin") return Forbid();
+        await using var tx = await Db.Database.BeginTransactionAsync();
+        var today = BookingService.Today;
+        var upcoming = await Db.Bookings.Include(x => x.Place)
+            .Where(x => x.UserId == u.Id && x.Day >= today && (x.Status == "بانتظار القبول" || x.Status == "بالانتظار" || x.Status == "مؤكد"))
+            .ToListAsync();
+        foreach (var b in upcoming)
+        {
+            b.Status = "ملغي";
+            if (b.Place != null) Db.Notifications.Add(new Notification { UserId = b.Place.OwnerUserId, Title = "انلغى حجز " + b.Code, Body = "صاحب الحجز حذف حسابه" });
+        }
+        if (u.Role == "Owner")
+            await Db.Places.Where(x => x.OwnerUserId == u.Id).ExecuteUpdateAsync(s => s.SetProperty(x => x.Active, false));
+        foreach (var f in await Db.Follows.Where(x => x.UserId == u.Id).Include(x => x.Place).ToListAsync())
+            if (f.Place != null) f.Place.Followers = Math.Max(0, f.Place.Followers - 1);
+        await Db.Follows.Where(x => x.UserId == u.Id).ExecuteDeleteAsync();
+        await Db.Favorites.Where(x => x.UserId == u.Id).ExecuteDeleteAsync();
+        await Db.Notifications.Where(x => x.UserId == u.Id).ExecuteDeleteAsync();
+        await Db.CartItems.Where(x => x.Cart!.UserId == u.Id).ExecuteDeleteAsync();
+        await Db.Carts.Where(x => x.UserId == u.Id).ExecuteDeleteAsync();
+        u.Active = false;
+        u.PasswordHash = null;
+        u.Name = "حساب محذوف";
+        u.Phone = "deleted-" + u.Id;
+        u.Governorate = ""; u.Area = ""; u.Birth = ""; u.Points = 0;
+        await Db.SaveChangesAsync();
+        await tx.CommitAsync();
+        return NoContent();
+    }
     public record Profile([Required, StringLength(100)] string Name, [StringLength(100)] string Governorate, [StringLength(100)] string Area, [StringLength(40)] string Birth);
     [HttpPut("me")] public async Task<IActionResult> Update(Profile input) { var u = (await Db.Users.FindAsync(UserId))!; u.Name = input.Name; u.Governorate = input.Governorate; u.Area = input.Area; u.Birth = input.Birth; await Db.SaveChangesAsync(); return Ok(u); }
 }
