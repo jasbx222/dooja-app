@@ -61,14 +61,6 @@ new Place{Id="p12",ImageKey="gaming",Name="كيدز لاند",Type="أنشطة �
         db.Follows.AddRange(new Follow { UserId = customer.Id, PlaceId = "p4" }, new Follow { UserId = customer.Id, PlaceId = "p6" });
         db.OwnerServices.AddRange(new OwnerService { PlaceId = "p1", Name = "ساعة ملعب", Price = 20000, Unit = "ساعة" }, new OwnerService { PlaceId = "p1", Name = "باقة ساعتين", Price = 35000, Unit = "باقة" }, new OwnerService { PlaceId = "p1", Name = "تأجير مضارب", Price = 3000, Unit = "مضرب" });
         db.ClosedSlots.Add(new ClosedSlot { PlaceId = "p1", Day = Dooja.Web.Services.BookingService.Today, Time = "22:00" });
-        var reelp1 = new Reel { ImageKey = "reel", PlaceId = "p1", Caption = "سهرة بادل بالمنصور، الإضاءة الجديدة تجنن", OfferText = "خصم 10% قبل 9 بالليل", Likes = 1200 }; db.Reels.Add(reelp1); await db.SaveChangesAsync();
-        db.ReelComments.Add(new ReelComment { ReelId = reelp1.Id, Name = "حيدر", Text = "وين بالضبط؟ قرب الساعة؟", Likes = 12 });
-        db.ReelComments.Add(new ReelComment { ReelId = reelp1.Id, Name = "مريم", Text = "يكدرون بنات يحجزون بأوقات خاصة؟", Likes = 8 });
-        db.ReelComments.Add(new ReelComment { ReelId = reelp1.Id, Name = "ملعب بادل لاونج", Text = "اي عدنا أوقات عائلية كل جمعة الصبح", Likes = 20 });
-        var reelp4 = new Reel { ImageKey = "gaming", PlaceId = "p4", Caption = "بطولة FIFA كل خميس، الجائزة 100 ألف", OfferText = "ساعة مجانية كل خميس", Likes = 8100 }; db.Reels.Add(reelp4); await db.SaveChangesAsync();
-        db.ReelComments.Add(new ReelComment { ReelId = reelp4.Id, Name = "كرار", Text = "شلون أسجل بالبطولة؟", Likes = 4 });
-        var reelp6 = new Reel { ImageKey = "cafe", PlaceId = "p6", Caption = "جلسة مسائية على الشط ويا أطيب شاي", OfferText = "خصم 15% للطلاب", Likes = 5600 }; db.Reels.Add(reelp6); await db.SaveChangesAsync();
-        db.ReelComments.Add(new ReelComment { ReelId = reelp6.Id, Name = "سارة", Text = "المكان يجنن 😍", Likes = 9 });
         var requestUsers = new[] { new AppUser { Phone = "07700000003", Name = "مصطفى كريم" }, new AppUser { Phone = "07700000004", Name = "علي ناظم" }, new AppUser { Phone = "07700000005", Name = "زيد حيدر" }, new AppUser { Phone = "07700000006", Name = "عباس محمد" } }; db.Users.AddRange(requestUsers); await db.SaveChangesAsync();
         db.Bookings.Add(new Booking { Code = "DJ-OWNER-1", PlaceId = "p1", UserId = customer.Id, Day = Dooja.Web.Services.BookingService.Today, Time = "20:00", Duration = "السبت 8:00 م · ساعتين · 4 أشخاص", People = 4, Total = 31500, PayMethod = "زين كاش · مدفوع", Status = "بانتظار القبول" });
         db.Bookings.Add(new Booking { Code = "DJ-OWNER-2", PlaceId = "p1", UserId = requestUsers[0].Id, Day = Dooja.Web.Services.BookingService.Today.AddDays(1), Time = "21:00", Duration = "الأحد 10:00 م · ساعة", People = 4, Total = 20000, PayMethod = "نقداً بالمكان", Status = "بانتظار القبول" });

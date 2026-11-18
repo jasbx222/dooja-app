@@ -31,8 +31,8 @@ Development app accounts:
 
 - Customer `07700000001` — حسين علي
 - Owner `07700000002` — أبو علي
-- Request an OTP first, then verify with **1234**. A challenge lasts five minutes, allows five failed attempts and is consumed after successful verification. Auth endpoints are rate-limited.
-- New verified numbers are created as Customers; only an authenticated dashboard Admin can assign Owner privileges. Admin phone login through the OTP API is deliberately prohibited.
+- These demo phones have no password until someone registers that number once. Registration then sets the password. Auth endpoints are rate-limited.
+- New accounts are Customers. Only a dashboard Admin can assign Owner. Admin phones cannot sign in through the app API.
 
 ## Real persistence versus sample records
 
@@ -84,10 +84,10 @@ Dates: `YYYY-MM-DD`; times: 24-hour `HH:mm`; money: integer Iraqi dinars. All ID
 BASE=http://localhost:5080
 curl "$BASE/api/places"
 curl -G "$BASE/api/places" --data-urlencode 'category=بادل' --data-urlencode 'q=المنصور'
-curl -X POST "$BASE/api/auth/request-otp" -H 'Content-Type: application/json' \
-  -d '{"phone":"07700000001"}'
-curl -X POST "$BASE/api/auth/verify" -H 'Content-Type: application/json' \
-  -d '{"phone":"07700000001","code":"1234"}'
+curl -X POST "$BASE/api/auth/register" -H 'Content-Type: application/json' \
+  -d '{"name":"حسين","phone":"07701234567","password":"secret1"}'
+curl -X POST "$BASE/api/auth/login" -H 'Content-Type: application/json' \
+  -d '{"phone":"07701234567","password":"secret1"}'
 # Copy token from { token, role, user } into TOKEN.
 TOKEN='replace-with-response-token'
 curl "$BASE/api/bookings" -H "Authorization: Bearer $TOKEN"
@@ -101,8 +101,8 @@ Booking requests accept an optional `offerId`. The server checks place ownership
 
 ### Public routes
 
-- `POST /api/auth/request-otp` — `{ phone }`
-- `POST /api/auth/verify` — `{ phone, code }` → `{ token, role, user }`
+- `POST /api/auth/register` — `{ name, phone, password }` → `{ token, role, user }`
+- `POST /api/auth/login` — `{ phone, password }` → `{ token, role, user }`
 - `GET /api/places?category=&q=&page=1&pageSize=50`
 - `GET /api/places/{id}`
 - `GET /api/places/{id}/services`
@@ -171,7 +171,7 @@ The smoke test writes test records, so **never run it against production**. It v
 
 1. Host behind HTTPS and configure `AllowedHosts` for the real domain. Production uses HSTS and HTTPS redirection. Configure forwarded headers safely if deploying behind a trusted reverse proxy.
 2. Use a separate empty production DB, `Seed__Demo=false`, a strong `Admin__Password` for its first startup and a secret **at least 32-byte** `Jwt__Key` (environment variables or a secret store, not source control). Back up SQLite and persist the cookie data-protection key directory when using containers. Scale beyond one instance with a shared key store/database and distributed rate limiting.
-3. **SMS delivery is not implemented**: production OTP endpoints intentionally return 503 instead of accepting 1234. Integrate a real SMS OTP provider, secure challenge storage, expiry/attempt limits and verification before enabling production mobile login.
+3. App login is phone plus password. SMS codes are not used. A password is stored only as a hash and must be at least 6 characters.
 4. The Flutter app calls this API when built with `API_BASE_URL` (no `/api` suffix), persists the token, and refreshes after mutations. Release builds need an explicit HTTPS `API_BASE_URL`. Use `http://10.0.2.2:5080` on an Android emulator whose host runs the API. A server bound to 127.0.0.1 is not reachable from a phone. Set explicit CORS origins in production (`Cors__Origins__0`); Development allows any origin. Republish the hosted PWA with `./scripts/publish-flutter-web.sh` from `dashboard/`.
 5. Adapt Dart names: `img→imageKey`, `cat→category`, `nRev→reviewCount` (integer), `rating` (number), `dur→duration`, `pay→payMethod`, `newP/oldP→newPrice/oldPrice`, `exp→expiryText`, `photos→hasPhotos`. Format money/day/time in Flutter. Use ID/code separately; use `hours` rather than trying to parse Arabic duration strings.
 6. Card/ZainCash processing, refunds/settlement, real SMS, push delivery (FCM/APNs), actual video/photo uploads/storage, the customer reels feed, live distance/geolocation, capacity/resource configuration, profile interests/settings, deployment and actual Flutter end-to-end testing remain integration work. Store product images (JPEG, PNG, WEBP, up to 4 MB) are saved under `wwwroot/uploads`. Notifications currently persist in the database and are retrieved by the app; no push is sent. The app shows reels as coming soon and does not publish a place image as a reel.

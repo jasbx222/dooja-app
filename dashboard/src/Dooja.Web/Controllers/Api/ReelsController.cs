@@ -6,9 +6,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 namespace Dooja.Web.Controllers.Api;
 [Route("api/reels")]
-public class ReelsController(DoojaDb db, IWebHostEnvironment env, IConfiguration config) : ApiBase(db)
+public class ReelsController(DoojaDb db, IConfiguration config) : ApiBase(db)
 {
-    bool Enabled => env.IsDevelopment() || config.GetValue("Features:Reels", false);
+    bool Enabled => config.GetValue("Features:Reels", false);
     IActionResult Soon() => StatusCode(503, new { error = "الريلز قريباً" });
     [HttpGet, AllowAnonymous] public async Task<IActionResult> List() => Enabled ? Ok(await Db.Reels.AsNoTracking().Include(x => x.Place).OrderByDescending(x => x.Id).Take(100).ToListAsync()) : Ok(Array.Empty<Reel>());
     [HttpGet("{id:int}/comments"), AllowAnonymous] public async Task<IActionResult> Comments(int id) => Enabled ? Ok(await Db.ReelComments.Where(x => x.ReelId == id).OrderByDescending(x => x.Id).Take(100).ToListAsync()) : Ok(Array.Empty<ReelComment>());
