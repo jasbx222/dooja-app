@@ -263,6 +263,74 @@ class OScan extends Scr {
   }
 }
 
+const _wd = ['الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت', 'الأحد'];
+String _hh(int h) => '${(h % 24).toString().padLeft(2, '0')}:00';
+int _hourOf(String t) => int.tryParse(time24(t).split(':').first.trim()) ?? -1;
+
+/// One hour of the day as the owner sees it.
+class _Slot {
+  final int h;
+  final String state; // free | closed | booked | pending | past
+  final OwnerReq? start; // booking that starts at this hour
+  final OwnerReq? cont; // booking that started earlier and still runs
+  const _Slot(this.h, this.state, {this.start, this.cont});
+}
+
+List<OwnerReq> _dayReqs(String? id, String date) => id == null
+    ? <OwnerReq>[]
+    : (repo.ownerReqs
+          .where((r) => r.placeId == id && r.day == date && r.status != 'rejected')
+          .toList()
+        ..sort((x, y) => _hourOf(x.time).compareTo(_hourOf(y.time))));
+
+List<_Slot> _slots(String id, String date, DateTime now) {
+  final today = date == isoDay();
+  final reqs = _dayReqs(id, date);
+  final a = repo.availability['$id/$date'];
+  // Hours the server says are taken, even if the booking is not in the
+  // owner's loaded list (the list holds the latest 200 bookings only).
+  final taken = <int>{};
+  for (final b in (a?['booked'] as List? ?? const [])) {
+    final h = _hourOf(b['time'].toString());
+    for (var i = 0; i < ((b['hours'] as num?)?.toInt() ?? 1); i++) {
+      taken.add(h + i);
+    }
+  }
+  return [
+    for (var h = 0; h < 24; h++)
+      () {
+        OwnerReq? start, cont;
+        for (final r in reqs) {
+          final s = _hourOf(r.time);
+          if (s == h) start ??= r;
+          if (s < h && h < s + r.hours) cont ??= r;
+        }
+        final b = start ?? cont;
+        final closed = repo.closedSlots.any(
+          (x) => x['day'] == date && x['time'] == _hh(h),
+        );
+        final state = b != null
+            ? (b.status == 'new' ? 'pending' : 'booked')
+            : taken.contains(h)
+            ? 'booked'
+            : closed
+            ? 'closed'
+            : today && h <= now.hour
+            ? 'past'
+            : 'free';
+        return _Slot(h, state, start: start, cont: cont);
+      }(),
+  ];
+}
+
+(String, String, String) _look(String state) => switch (state) {
+  'booked' => ('محجوز', OK, OKB),
+  'pending' => ('بانتظار قبولك', WR, WRB),
+  'closed' => ('مغلق', RD, '#FDECEC'),
+  'past' => ('انتهى', MU, G),
+  _ => ('متاح', P, PL),
+};
+
 class OCal extends Scr {
   const OCal({super.key});
   @override
@@ -274,73 +342,284 @@ class OCal extends Scr {
   Widget view(c, s) {
     final day = s.get('day', 0), date = isoDay(day);
     final id = repo.ownerId;
-    final a = id == null ? null : repo.availability['$id/$date'];
-    final occupied = id == null ? <int>{} : repo.occupied(id, date);
+    final now = DateTime.now();
+    final loaded = id != null && repo.availability['$id/$date'] != null;
+    final slots = loaded ? _slots(id, date, now) : <_Slot>[];
+    int count(String st) => slots.where((x) => x.state == st).length;
+    final dayReqs = _dayReqs(id, date);
+    final free = [for (final x in slots) if (x.state == 'free') _hh(x.h)];
+    final closed = [for (final x in slots) if (x.state == 'closed') _hh(x.h)];
+
+    Future<void> pick(int i) async {
+      s.set('day', i);
+      await repo.loadClosed(isoDay(i));
+    }
+
     return screen(c, [
-      topbar('المواعيد'),
-      ownerSelector(c),
-      body([
-        R(
-          [
-            for (var i = 0; i < 5; i++)
-              chip(isoDay(i), day == i, null, 11, () {
-                s.set('day', i);
-                repo.loadClosed(isoDay(i));
-              }),
-          ],
-          g: 5,
-          wrap: true,
-          w: 'fill',
+      topbar(
+        'المواعيد',
+        right: iconbtn(
+          'refresh-cw',
+          tap: () async {
+            await repo.refresh();
+            await repo.loadClosed(date);
+          },
         ),
+      ),
+      ownerSelector(c),
+      // Next 7 days, each with its number of bookings.
+      N(
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: R([
+            for (var i = 0; i < 7; i++)
+              () {
+                final d = now.add(Duration(days: i));
+                final n = _dayReqs(id, isoDay(i)).length;
+                final on = i == day;
+                return F(
+                  [
+                    T(i == 0 ? 'اليوم' : i == 1 ? 'باچر' : _wd[d.weekday - 1], 11, 600, on ? WH : MU),
+                    T('${d.day}', 20, 800, on ? WH : INK),
+                    n > 0
+                        ? F([T('$n', 10, 800, on ? P : WH)], al: 'c', jc: 'c', w: 18, h: 18, r: 9, bg: on ? WH : P)
+                        : BOX(w: 18, h: 18),
+                  ],
+                  g: 4,
+                  al: 'c',
+                  w: 62,
+                  p: [10, 0],
+                  r: 18,
+                  bg: on ? P : WH,
+                  sk: on ? null : LN,
+                  tap: () => pick(i),
+                );
+              }(),
+          ], g: 8),
+        ),
+        fillW: true,
+        hasFill: true,
+      ),
+      body([
         if (id == null)
           T('اختار مشروعاً أولاً', 14, 600, MU)
-        else if (a == null)
+        else if (!loaded)
           btn('تحميل المواعيد', tap: () => repo.loadClosed(date))
-        else
-          for (var h = 0; h < 24; h++)
-            () {
-              final time = '${h.toString().padLeft(2, '0')}:00';
-              final closed = repo.closedSlots.any(
-                (x) => x['day'] == date && x['time'] == time,
-              );
-              return card(
-                [
-                  R(
-                    [
-                      T(time, 14, 800),
-                      T(
-                        closed
-                            ? 'مغلق'
-                            : occupied.contains(h)
-                            ? 'محجوز'
-                            : 'متاح',
-                        14,
-                        700,
-                        closed
-                            ? RD
-                            : occupied.contains(h)
-                            ? WR
-                            : OK,
-                      ),
-                    ],
-                    jc: 'sb',
+        else ...[
+          // Summary of the chosen day.
+          R(
+            [
+              for (final st in ['free', 'booked', 'pending', 'closed'])
+                () {
+                  final l = _look(st);
+                  return F(
+                    [T('${count(st)}', 20, 800, l.$2), T(l.$1, 11, 600, l.$2)],
+                    g: 2,
+                    al: 'c',
                     w: 'fill',
-                  ),
+                    p: [10, 4],
+                    r: 14,
+                    bg: l.$3,
+                  );
+                }(),
+            ],
+            g: 8,
+            w: 'fill',
+          ),
+          R(
+            [
+              btn(
+                'إغلاق المتاح',
+                icon: 'lock',
+                kind: 'g',
+                h: 44,
+                tap: free.isEmpty
+                    ? () => toast(c, 'ماكو أوقات متاحة بهذا اليوم')
+                    : () => confirmBulk(c, date, free, true),
+              ),
+              btn(
+                'فتح المغلق',
+                icon: 'circle-check',
+                kind: 'g',
+                h: 44,
+                tap: closed.isEmpty
+                    ? () => toast(c, 'ماكو أوقات مغلقة بهذا اليوم')
+                    : () => confirmBulk(c, date, closed, false),
+              ),
+            ],
+            g: 8,
+            w: 'fill',
+          ),
+          if (dayReqs.isNotEmpty) ...[
+            R([T('حجوزات هذا اليوم', 16, 800), T('${dayReqs.length}', 13, 700, MU)], jc: 'sb', w: 'fill'),
+            for (final r in dayReqs) bookingRow(c, r),
+          ],
+          R([T('الأوقات', 16, 800)], w: 'fill'),
+          Tn(
+            'شغّل المفتاح حتى يصير الوقت متاح للحجز، وطفّيه حتى تغلقه. اضغط على الوقت المحجوز حتى تشوف الحجز.',
+            s: 12,
+            c: MU,
+            lh: 20,
+          ),
+          if (count('past') > 0)
+            Tn('${count('past')} ساعة من اليوم فاتت وما تنعرض.', s: 12, c: MU),
+          for (final part in const [
+            ('الصبح', 6, 12),
+            ('الظهر', 12, 17),
+            ('المسا', 17, 24),
+            ('بعد نص الليل', 0, 6),
+          ])
+            if (slots.any((x) => x.h >= part.$2 && x.h < part.$3 && x.state != 'past'))
+              F(
+                [
+                  T(part.$1, 13, 700, MU),
+                  for (final x in slots.where(
+                    (x) => x.h >= part.$2 && x.h < part.$3 && x.state != 'past',
+                  ))
+                    _slotRow(c, date, x),
                 ],
-                p: 12,
-                tap: closed || !occupied.contains(h)
-                    ? () => apiAction(
-                        c,
-                        repo.toggleClosed(date, time),
-                        'تم تحديث الوقت',
-                      )
-                    : null,
-              );
-            }(),
+                g: 8,
+                w: 'fill',
+              ),
+        ],
       ]),
     ], onavTab: 'الحجوزات');
   }
 }
+
+N bookingRow(BuildContext c, OwnerReq r) {
+  final l = _look(r.status == 'new' ? 'pending' : 'booked');
+  final h = _hourOf(r.time);
+  final label = r.status == 'past'
+      ? 'مكتمل'
+      : r.status == 'ok' && r.arrived
+      ? 'وصل'
+      : l.$1;
+  return card(
+    [
+      R(
+        [
+          F([T(_hh(h), 15, 800), T('إلى ${_hh(h + r.hours)}', 11, 500, MU)], g: 2, w: 60),
+          F(
+            [
+              T(r.name.isEmpty ? 'زبون' : r.name, 15, 800),
+              T('${r.people} أشخاص · ${fmt(r.total)} د.ع', 12, 500, MU),
+            ],
+            g: 4,
+            w: 'fill',
+          ),
+          tag(label, bg: l.$3, c: l.$2),
+        ],
+        g: 12,
+        w: 'fill',
+        al: 'c',
+      ),
+    ],
+    p: 12,
+    tap: () => bookingSheet(c, r),
+  );
+}
+
+N _slotRow(BuildContext c, String date, _Slot x) {
+  final l = _look(x.state);
+  final b = x.start ?? x.cont;
+  final canToggle = x.state == 'free' || x.state == 'closed';
+  final past = x.state == 'past';
+  return R(
+    [
+      BOX(w: 4, h: 36, r: 2, bg: l.$2),
+      F([T(_hh(x.h), 15, 800, past ? MU : INK), T('إلى ${_hh(x.h + 1)}', 11, 500, MU)], g: 2, w: 56),
+      F(
+        [
+          if (b != null) ...[
+            T(b.name.isEmpty ? 'زبون' : b.name, 14, 700),
+            T(
+              x.start == null
+                  ? 'تكملة الحجز من ${_hh(_hourOf(b.time))}'
+                  : '${b.people} أشخاص · ${b.hours} ساعة',
+              11,
+              500,
+              MU,
+            ),
+          ] else ...[
+            T(l.$1, 13, 700, l.$2),
+            T(
+              switch (x.state) {
+                'free' => 'الزبائن يكدرون يحجزونه',
+                'closed' => 'ما يظهر للزبائن',
+                'past' => 'الوقت فات',
+                _ => 'محجوز',
+              },
+              11,
+              500,
+              MU,
+            ),
+          ],
+        ],
+        g: 2,
+        w: 'fill',
+      ),
+      if (canToggle)
+        toggle(
+          x.state == 'free',
+          () => apiAction(
+            c,
+            repo.setClosed(date, [_hh(x.h)], x.state == 'free'),
+            x.state == 'free' ? 'انغلق ${_hh(x.h)}' : 'صار ${_hh(x.h)} متاح',
+          ),
+        )
+      else if (b != null)
+        tag(l.$1, bg: l.$3, c: l.$2),
+    ],
+    g: 12,
+    w: 'fill',
+    al: 'c',
+    p: [10, 12],
+    r: 16,
+    bg: past ? G : WH,
+    sk: past ? null : LN,
+    tap: b != null ? () => bookingSheet(c, b) : null,
+  );
+}
+
+Future<void> bookingSheet(BuildContext c, OwnerReq r) => openSheet(
+  c,
+  title: 'تفاصيل الحجز',
+  top: 300,
+  body: (sc, set) => [
+    if (r.phone.isNotEmpty) meta('phone', r.phone, INK, 14),
+    requestCard(c, r),
+  ],
+);
+
+Future<void> confirmBulk(BuildContext c, String date, List<String> times, bool close) => openSheet(
+  c,
+  title: close ? 'تغلق كل الأوقات المتاحة؟' : 'تفتح كل الأوقات المغلقة؟',
+  top: 540,
+  body: (sc, set) => [
+    Tn(
+      close
+          ? '${times.length} وقت بيوم $date راح تنغلق وما يكدر أحد يحجزها. الحجوزات الموجودة تبقى مثل ما هي.'
+          : '${times.length} وقت بيوم $date راح ترجع متاحة للحجز.',
+      s: 14,
+      c: MU,
+      lh: 24,
+    ),
+    btn(
+      close ? 'إغلاق ${times.length} وقت' : 'فتح ${times.length} وقت',
+      kind: close ? 'd' : 'p',
+      tap: () async {
+        final ok = await apiAction(
+          c,
+          repo.setClosed(date, times, close),
+          close ? 'انغلقت الأوقات' : 'رجعت الأوقات متاحة',
+        );
+        if (ok && sc.mounted) Navigator.pop(sc);
+      },
+    ),
+  ],
+);
 
 class OInsights extends Scr {
   const OInsights({super.key});

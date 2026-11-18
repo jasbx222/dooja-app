@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Dooja.Web.Controllers;
 
-public class ShopProductsController(DoojaDb db, IWebHostEnvironment env) : DashboardControllerBase
+public class ShopProductsController(DoojaDb db) : DashboardControllerBase
 {
     public async Task<IActionResult> Index(string? q)
     {
@@ -66,7 +66,7 @@ public class ShopProductsController(DoojaDb db, IWebHostEnvironment env) : Dashb
         var order = product.Images.Select(x => x.SortOrder).DefaultIfEmpty(-1).Max();
         foreach (var file in files)
         {
-            var (path, error) = await ImageStore.Save(env, file, "products");
+            var (path, error) = await ImageStore.Save(db, file);
             if (error != null) { TempData["Error"] = error; return RedirectToAction(nameof(Edit), new { id }); }
             product.Images.Add(new ProductImage { Path = path!, SortOrder = ++order });
         }
@@ -79,7 +79,7 @@ public class ShopProductsController(DoojaDb db, IWebHostEnvironment env) : Dashb
     {
         var image = await db.ProductImages.FirstOrDefaultAsync(x => x.Id == id);
         if (image == null) return NotFound();
-        ImageStore.Delete(env, image.Path);
+        await ImageStore.Delete(db, image.Path);
         db.ProductImages.Remove(image);
         await db.SaveChangesAsync();
         TempData["Success"] = "تم حذف الصورة";
@@ -100,7 +100,7 @@ public class ShopProductsController(DoojaDb db, IWebHostEnvironment env) : Dashb
     int Actor() => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 }
 
-public class ShopCategoriesController(DoojaDb db, IWebHostEnvironment env) : DashboardControllerBase
+public class ShopCategoriesController(DoojaDb db) : DashboardControllerBase
 {
     public async Task<IActionResult> Index() => View(await db.ProductCategories.AsNoTracking().OrderBy(x => x.SortOrder).ToListAsync());
     public IActionResult Create() => View("Edit", new ProductCategory { Active = true });
@@ -123,9 +123,9 @@ public class ShopCategoriesController(DoojaDb db, IWebHostEnvironment env) : Das
     {
         var row = await db.ProductCategories.FindAsync(id);
         if (row == null || file == null) return NotFound();
-        var (path, error) = await ImageStore.Save(env, file, "categories");
+        var (path, error) = await ImageStore.Save(db, file);
         if (error != null) { TempData["Error"] = error; return RedirectToAction(nameof(Edit), new { id }); }
-        ImageStore.Delete(env, row.ImagePath);
+        await ImageStore.Delete(db, row.ImagePath);
         row.ImagePath = path;
         await db.SaveChangesAsync();
         TempData["Success"] = "تم حفظ صورة التصنيف";

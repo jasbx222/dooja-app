@@ -79,8 +79,19 @@
         input.addEventListener("change", function () {
             var n = input.files.length;
             if (!n) return;
-            label.textContent = n === 1 ? input.files[0].name : "تم اختيار " + n + " صور";
+            var big = Array.prototype.some.call(input.files, function (f) { return f.size > 4 * 1024 * 1024; });
+            if (big) {
+                label.textContent = "صورة أكبر من 4 ميغابايت. صغّرها واختر مرة ثانية";
+                label.classList.remove("picked");
+                input.value = "";
+                return;
+            }
+            label.textContent = (n === 1 ? input.files[0].name : "تم اختيار " + n + " صور") + " — جارٍ الرفع…";
             label.classList.add("picked");
+            // Upload right away: picking a photo and then pressing the product's
+            // Save button used to drop the photo silently.
+            var form = input.form;
+            if (form && form.classList.contains("upload-row")) form.requestSubmit();
         });
     });
 

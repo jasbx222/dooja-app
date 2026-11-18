@@ -13,6 +13,7 @@ public class DoojaDb(DbContextOptions<DoojaDb> options) : DbContext(options)
     public DbSet<ProductCategory> ProductCategories => Set<ProductCategory>();
     public DbSet<Product> Products => Set<Product>();
     public DbSet<ProductImage> ProductImages => Set<ProductImage>();
+    public DbSet<StoredFile> StoredFiles => Set<StoredFile>();
     public DbSet<Cart> Carts => Set<Cart>();
     public DbSet<CartItem> CartItems => Set<CartItem>();
     public DbSet<ShopOrder> ShopOrders => Set<ShopOrder>();

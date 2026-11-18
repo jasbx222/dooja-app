@@ -10,7 +10,7 @@ public static class ShopSchema
     [
         "ProductCategories", "Products", "ProductImages", "Carts", "CartItems",
         "ShopOrders", "ShopOrderItems", "ShopOrderEvents", "InventoryTransactions",
-        "DeliveryAreas", "StoreSettings", "PaymentMethods"
+        "DeliveryAreas", "StoreSettings", "PaymentMethods", "StoredFiles"
     ];
 
     public static async Task Apply(DoojaDb db)
@@ -38,11 +38,14 @@ public static class ShopSchema
             while (await reader.ReadAsync()) existing.Add(reader.GetString(0));
         }
         await EnsureUserColumns(db, conn, pg);
-        if (existing.Contains("Products")) return;
+        // Create whichever shop tables this database is missing (older
+        // databases predate the shop, or predate StoredFiles).
+        var missing = Tables.Where(t => !existing.Contains(t)).ToArray();
+        if (missing.Length == 0) return;
         var script = db.Database.GenerateCreateScript();
         foreach (var statement in Split(script))
         {
-            if (!Tables.Any(t => statement.Contains('"' + t + '"', StringComparison.Ordinal))) continue;
+            if (!missing.Any(t => statement.Contains('"' + t + '"', StringComparison.Ordinal))) continue;
             if (!statement.StartsWith("CREATE", StringComparison.OrdinalIgnoreCase)) continue;
             await db.Database.ExecuteSqlRawAsync(statement);
         }

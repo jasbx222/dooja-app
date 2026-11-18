@@ -49,6 +49,13 @@ public class Product
     public List<ProductImage> Images { get; set; } = [];
 }
 
+public class StoredFile
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string ContentType { get; set; } = "";
+    public byte[] Data { get; set; } = [];
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
 public class ProductImage
 {
     public int Id { get; set; }

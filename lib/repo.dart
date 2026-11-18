@@ -120,8 +120,8 @@ class Reel {
 
 class OwnerReq {
   int id = 0;
-  String code = "", day = "", time = "", placeId = "";
-  int people = 0;
+  String code = "", day = "", time = "", placeId = "", phone = "";
+  int people = 0, hours = 1;
   final String img, name, when, pay;
   final int total;
   String status; // new | ok | past | rejected
@@ -376,6 +376,8 @@ class Repo extends ChangeNotifier {
         ..time = str(m, 'time')
         ..placeId = str(m, 'placeId')
         ..code = str(m, 'code')
+        ..phone = str(m['user'] as Map? ?? {}, 'phone')
+        ..hours = intVal(m, 'hours') < 1 ? 1 : intVal(m, 'hours')
         ..people = intVal(m, 'people');
   void profile(Map m) {
     phone = str(m, 'phone');
@@ -818,6 +820,27 @@ class Repo extends ChangeNotifier {
     }, reload: false);
     await loadAvailability(ownerId!, day);
   }
+
+  /// Closes (or reopens) several hours of one day, then reloads that day once.
+  Future<bool> setClosed(String day, List<String> times, bool close) =>
+      run(() async {
+        if (ownerId == null) throw const ApiException('اختار مشروعاً أولاً');
+        for (final t in times) {
+          final match = closedSlots
+              .where((x) => x['day'] == day && x['time'] == t)
+              .toList();
+          if (close && match.isEmpty) {
+            await api.post('owner/closed-slots', {
+              'placeId': ownerId,
+              'day': day,
+              'time': t,
+            });
+          } else if (!close && match.isNotEmpty) {
+            await api.delete('owner/closed-slots/${match.first['id']}');
+          }
+        }
+        await loadClosed(day);
+      }, reload: false);
 
   Future<bool> toggleClosed(String day, String time) => run(() async {
     if (ownerId == null) throw const ApiException('اختار مشروعاً أولاً');
